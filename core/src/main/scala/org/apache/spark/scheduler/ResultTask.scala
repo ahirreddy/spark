@@ -94,10 +94,11 @@ private[spark] class ResultTask[T, U](
     var func: (TaskContext, Iterator[T]) => U,
     _partitionId: Int,
     @transient locs: Seq[TaskLocation],
-    var outputId: Int)
-  extends Task[U](stageId, _partitionId) with Externalizable {
+    var outputId: Int,
+    replClassLoader: String)
+  extends Task[U](stageId, _partitionId, replClassLoader) with Externalizable {
 
-  def this() = this(0, null, null, 0, null, 0)
+  def this() = this(0, null, null, 0, null, 0, null)
 
   var split = if (rdd == null) null else rdd.partitions(partitionId)
 

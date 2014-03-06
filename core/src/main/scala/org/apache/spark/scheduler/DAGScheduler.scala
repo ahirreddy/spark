@@ -220,12 +220,12 @@ class DAGScheduler(
    * The jobId value passed in will be used if the stage doesn't already exist with
    * a lower jobId (jobId always increases across jobs.)
    */
-  private def getShuffleMapStage(shuffleDep: ShuffleDependency[_,_], jobId: Int): Stage = {
+  private def getShuffleMapStage(shuffleDep: ShuffleDependency[_,_], jobId: Int, replClassLoader: String): Stage = {
     shuffleToMapStage.get(shuffleDep.shuffleId) match {
       case Some(stage) => stage
       case None =>
         val stage =
-          newOrUsedStage(shuffleDep.rdd, shuffleDep.rdd.partitions.size, shuffleDep, jobId)
+          newOrUsedStage(shuffleDep.rdd, shuffleDep.rdd.partitions.size, shuffleDep, jobId, replClassLoader)
         shuffleToMapStage(shuffleDep.shuffleId) = stage
         stage
     }
@@ -242,12 +242,13 @@ class DAGScheduler(
       numTasks: Int,
       shuffleDep: Option[ShuffleDependency[_,_]],
       jobId: Int,
-      callSite: Option[String] = None)
+      callSite: Option[String] = None,
+      replClassLoader: String)
     : Stage =
   {
     val id = nextStageId.getAndIncrement()
     val stage =
-      new Stage(id, rdd, numTasks, shuffleDep, getParentStages(rdd, jobId), jobId, callSite)
+      new Stage(id, rdd, numTasks, shuffleDep, getParentStages(rdd, jobId, replClassLoader), jobId, callSite, replClassLoader)
     stageIdToStage(id) = stage
     updateJobIdStageIdMaps(jobId, stage)
     stageToInfos(stage) = new StageInfo(stage)
@@ -265,10 +266,11 @@ class DAGScheduler(
       numTasks: Int,
       shuffleDep: ShuffleDependency[_,_],
       jobId: Int,
+      replClassLoader: String,
       callSite: Option[String] = None)
     : Stage =
   {
-    val stage = newStage(rdd, numTasks, Some(shuffleDep), jobId, callSite)
+    val stage = newStage(rdd, numTasks, Some(shuffleDep), jobId, callSite, replClassLoader)
     if (mapOutputTracker.has(shuffleDep.shuffleId)) {
       val serLocs = mapOutputTracker.getSerializedMapOutputStatuses(shuffleDep.shuffleId)
       val locs = MapOutputTracker.deserializeMapStatuses(serLocs)
@@ -289,7 +291,7 @@ class DAGScheduler(
    * Get or create the list of parent stages for a given RDD. The stages will be assigned the
    * provided jobId if they haven't already been created with a lower jobId.
    */
-  private def getParentStages(rdd: RDD[_], jobId: Int): List[Stage] = {
+  private def getParentStages(rdd: RDD[_], jobId: Int, replClassLoader: String): List[Stage] = {
     val parents = new HashSet[Stage]
     val visited = new HashSet[RDD[_]]
     def visit(r: RDD[_]) {
@@ -300,7 +302,7 @@ class DAGScheduler(
         for (dep <- r.dependencies) {
           dep match {
             case shufDep: ShuffleDependency[_,_] =>
-              parents += getShuffleMapStage(shufDep, jobId)
+              parents += getShuffleMapStage(shufDep, jobId, replClassLoader)
             case _ =>
               visit(dep.rdd)
           }
@@ -321,7 +323,7 @@ class DAGScheduler(
           for (dep <- rdd.dependencies) {
             dep match {
               case shufDep: ShuffleDependency[_,_] =>
-                val mapStage = getShuffleMapStage(shufDep, stage.jobId)
+                val mapStage = getShuffleMapStage(shufDep, stage.jobId, stage.replClassLoader)
                 if (!mapStage.isAvailable) {
                   missing += mapStage
                 }
@@ -346,7 +348,7 @@ class DAGScheduler(
         val s = stages.head
         stageIdToJobIds.getOrElseUpdate(s.id, new HashSet[Int]()) += jobId
         jobIdToStageIds.getOrElseUpdate(jobId, new HashSet[Int]()) += s.id
-        val parents = getParentStages(s.rdd, jobId)
+        val parents = getParentStages(s.rdd, jobId, s.replClassLoader)
         val parentsWithoutThisJobId = parents.filter(p =>
           !stageIdToJobIds.get(p.id).exists(_.contains(jobId)))
         updateJobIdStageIdMapsList(parentsWithoutThisJobId ++ stages.tail)
@@ -528,7 +530,12 @@ class DAGScheduler(
         try {
           // New stage creation may throw an exception if, for example, jobs are run on a HadoopRDD
           // whose underlying HDFS files have been deleted.
-          finalStage = newStage(rdd, partitions.size, None, jobId, Some(callSite))
+          val replClassLoader = try {
+            properties.get(SparkContext.SPARK_JOB_CLASS_LOADER).toString
+          } catch {
+            case e => ""
+          }
+          finalStage = newStage(rdd, partitions.size, None, jobId, Some(callSite), replClassLoader)
         } catch {
           case e: Exception =>
             logWarning("Creating new stage failed due to exception - job: " + jobId, e)
@@ -746,7 +753,7 @@ class DAGScheduler(
     if (stage.isShuffleMap) {
       for (p <- 0 until stage.numPartitions if stage.outputLocs(p) == Nil) {
         val locs = getPreferredLocs(stage.rdd, p)
-        tasks += new ShuffleMapTask(stage.id, stage.rdd, stage.shuffleDep.get, p, locs)
+        tasks += new ShuffleMapTask(stage.id, stage.rdd, stage.shuffleDep.get, p, locs, stage.replClassLoader)
       }
     } else {
       // This is a final stage; figure out its job's missing partitions
@@ -754,7 +761,7 @@ class DAGScheduler(
       for (id <- 0 until job.numPartitions if !job.finished(id)) {
         val partition = job.partitions(id)
         val locs = getPreferredLocs(stage.rdd, partition)
-        tasks += new ResultTask(stage.id, stage.rdd, job.func, partition, locs, id)
+        tasks += new ResultTask(stage.id, stage.rdd, job.func, partition, locs, id, stage.replClassLoader)
       }
     }
 
@@ -1045,7 +1052,7 @@ class DAGScheduler(
         for (dep <- rdd.dependencies) {
           dep match {
             case shufDep: ShuffleDependency[_,_] =>
-              val mapStage = getShuffleMapStage(shufDep, stage.jobId)
+              val mapStage = getShuffleMapStage(shufDep, stage.jobId, stage.replClassLoader)
               if (!mapStage.isAvailable) {
                 visitedStages += mapStage
                 visit(mapStage.rdd)

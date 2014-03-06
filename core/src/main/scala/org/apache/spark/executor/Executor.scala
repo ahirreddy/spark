@@ -179,7 +179,6 @@ private[spark] class Executor(
     override def run(): Unit = SparkHadoopUtil.get.runAsUser(sparkUser) { () =>
       val startTime = System.currentTimeMillis()
       SparkEnv.set(env)
-      Thread.currentThread.setContextClassLoader(replClassLoader)
       val ser = SparkEnv.get.closureSerializer.newInstance()
       logInfo("Running task ID " + taskId)
       execBackend.statusUpdate(taskId, TaskState.RUNNING, EMPTY_BYTE_BUFFER)
@@ -191,7 +190,10 @@ private[spark] class Executor(
       try {
         SparkEnv.set(env)
         Accumulators.clear()
-        val (taskFiles, taskJars, taskBytes) = Task.deserializeWithDependencies(serializedTask)
+        val (taskFiles, taskJars, recievedReplClassLoader, taskBytes) = Task.deserializeWithDependencies(serializedTask)
+
+      logInfo(s"-----------------------------------\n$recievedReplClassLoader\n----------------------------------------")
+      Thread.currentThread.setContextClassLoader(addRemoteClassLoaderIfNeeded(recievedReplClassLoader))
         updateDependencies(taskFiles, taskJars)
         task = ser.deserialize[Task[Any]](taskBytes, Thread.currentThread.getContextClassLoader)
 
@@ -327,6 +329,25 @@ private[spark] class Executor(
       }
     } else {
       parent
+    }
+  }
+
+  private def addRemoteClassLoaderIfNeeded(remote: String): ClassLoader = {
+    if (remote != "") {
+      logInfo("Using REPL class URI: " + remote)
+      try {
+        val klass = Class.forName("org.apache.spark.repl.ExecutorClassLoader")
+          .asInstanceOf[Class[_ <: ClassLoader]]
+        val constructor = klass.getConstructor(classOf[String], classOf[ClassLoader])
+        constructor.newInstance(remote, urlClassLoader)
+      } catch {
+        case _: ClassNotFoundException =>
+          logError("Could not find org.apache.spark.repl.ExecutorClassLoader on classpath!")
+          System.exit(1)
+          null
+      }
+    } else {
+      urlClassLoader
     }
   }
 

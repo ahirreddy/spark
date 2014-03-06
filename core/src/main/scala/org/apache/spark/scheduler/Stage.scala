@@ -43,7 +43,8 @@ private[spark] class Stage(
     val shuffleDep: Option[ShuffleDependency[_,_]],  // Output shuffle if stage is a map stage
     val parents: List[Stage],
     val jobId: Int,
-    callSite: Option[String])
+    callSite: Option[String],
+    val replClassLoader: String)
   extends Logging {
 
   val isShuffleMap = shuffleDep.isDefined

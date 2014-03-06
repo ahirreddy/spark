@@ -103,12 +103,13 @@ private[spark] class ShuffleMapTask(
     var rdd: RDD[_],
     var dep: ShuffleDependency[_,_],
     _partitionId: Int,
-    @transient private var locs: Seq[TaskLocation])
-  extends Task[MapStatus](stageId, _partitionId)
+    @transient private var locs: Seq[TaskLocation],
+    replClassLoader: String)
+  extends Task[MapStatus](stageId, _partitionId, replClassLoader)
   with Externalizable
   with Logging {
 
-  protected def this() = this(0, null, null, 0, null)
+  protected def this() = this(0, null, null, 0, null, null)
 
   @transient private val preferredLocs: Seq[TaskLocation] = {
     if (locs == null) Nil else locs.toSet.toSeq

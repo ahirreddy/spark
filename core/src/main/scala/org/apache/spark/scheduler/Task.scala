@@ -42,7 +42,7 @@ import org.apache.spark.util.ByteBufferInputStream
  * @param stageId id of the stage this task belongs to
  * @param partitionId index of the number in the RDD
  */
-private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) extends Serializable {
+private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int, val replClassLoader: String) extends Serializable {
 
   final def run(attemptId: Long): T = {
     context = new TaskContext(stageId, partitionId, attemptId, runningLocally = false)
@@ -101,6 +101,7 @@ private[spark] object Task {
       task: Task[_],
       currentFiles: HashMap[String, Long],
       currentJars: HashMap[String, Long],
+      replClassLoader: String,
       serializer: SerializerInstance)
     : ByteBuffer = {
 
@@ -121,6 +122,9 @@ private[spark] object Task {
       dataOut.writeLong(timestamp)
     }
 
+    // Write ClassLoader URI
+    dataOut.writeUTF(replClassLoader)
+
     // Write the task itself and finish
     dataOut.flush()
     val taskBytes = serializer.serialize(task).array()
@@ -137,7 +141,7 @@ private[spark] object Task {
    * @return (taskFiles, taskJars, taskBytes)
    */
   def deserializeWithDependencies(serializedTask: ByteBuffer)
-    : (HashMap[String, Long], HashMap[String, Long], ByteBuffer) = {
+    : (HashMap[String, Long], HashMap[String, Long], String, ByteBuffer) = {
 
     val in = new ByteBufferInputStream(serializedTask)
     val dataIn = new DataInputStream(in)
@@ -156,8 +160,12 @@ private[spark] object Task {
       taskJars(dataIn.readUTF()) = dataIn.readLong()
     }
 
+    // Read ClassLoader URI
+    val replClassLoader: String = dataIn.readUTF()
+    println(s"=======================\n$replClassLoader\n=========================")
+
     // Create a sub-buffer for the rest of the data, which is the serialized Task object
     val subBuffer = serializedTask.slice()  // ByteBufferInputStream will have read just up to task
-    (taskFiles, taskJars, subBuffer)
+    (taskFiles, taskJars, replClassLoader, subBuffer)
   }
 }
