@@ -38,7 +38,7 @@ private[spark] class ServerStateException(message: String) extends Exception(mes
  * as well as classes created by the interpreter when the user types in code. This is just a wrapper
  * around a Jetty server.
  */
-private[spark] class HttpServer(resourceBase: File) extends Logging {
+class HttpServer(resourceBase: File) extends Logging {
   private var server: Server = null
   private var port: Int = -1
 

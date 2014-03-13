@@ -89,7 +89,7 @@ import org.apache.spark.util.Utils
       val SPARK_DEBUG_REPL: Boolean = (System.getenv("SPARK_DEBUG_REPL") == "1")
 
       /** Local directory to save .class files too */
-      val outputDir = {
+      lazy val outputDir = {
         val tmp = System.getProperty("java.io.tmpdir")
         val rootDir = new SparkConf().get("spark.repl.classdir",  tmp)
         Utils.createTempDir(rootDir)
