@@ -730,6 +730,14 @@ import org.apache.spark.util.Utils
    *
    *  Read! Eval! Print! Some of that not yet centralized here.
    */
+  object ReadEvalPrint {
+    val lineName = sessionNames.line
+    val readName    = sessionNames.read
+    val evalName    = sessionNames.eval
+    val printName   = sessionNames.print
+    val resultName  = sessionNames.result
+  }
+
   class ReadEvalPrint(lineId: Int) {
     def this() = this(freshLineId())
 
@@ -737,11 +745,11 @@ import org.apache.spark.util.Utils
     private var evalCaught: Option[Throwable] = None
     private var conditionalWarnings: List[ConditionalWarning] = Nil
 
-    val packageName = sessionNames.line + lineId
-    val readName    = sessionNames.read
-    val evalName    = sessionNames.eval
-    val printName   = sessionNames.print
-    val resultName  = sessionNames.result
+    val packageName = ReadEvalPrint.lineName + lineId
+    val readName    = ReadEvalPrint.readName
+    val evalName    = ReadEvalPrint.evalName
+    val printName   = ReadEvalPrint.printName
+    val resultName  = ReadEvalPrint.resultName
 
     def bindError(t: Throwable) = {
       if (!bindExceptions) // avoid looping if already binding
