@@ -31,7 +31,6 @@ import org.apache.spark.sql.catalyst.plans.logical.{Subquery, LogicalPlan}
 import org.apache.spark.sql.catalyst.rules.RuleExecutor
 import org.apache.spark.sql.columnar.InMemoryColumnarTableScan
 import org.apache.spark.sql.execution._
-import org.apache.spark.api.java.JavaRDD
 
 /**
  * <span class="badge" style="float: right; background-color: darkblue;">ALPHA COMPONENT</span>
