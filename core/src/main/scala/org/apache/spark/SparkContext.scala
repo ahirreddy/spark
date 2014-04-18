@@ -64,7 +64,7 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It
   // contains a map from hostname to a list of input format splits on the host.
-  private[spark] var preferredNodeLocationData: Map[String, Set[SplitInfo]] = Map()
+  @transient private[spark] var preferredNodeLocationData: Map[String, Set[SplitInfo]] = Map()
 
   /**
    * :: DeveloperApi ::
@@ -147,7 +147,7 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   private[spark] def this(master: String, appName: String, sparkHome: String, jars: Seq[String]) =
     this(master, appName, sparkHome, jars, Map(), Map())
 
-  private[spark] val conf = config.clone()
+  @transient private[spark] val conf = config.clone()
 
   /**
    * Return a copy of this SparkContext's configuration. The configuration ''cannot'' be
@@ -189,10 +189,10 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   if (master == "yarn-client") System.setProperty("SPARK_YARN_MODE", "true")
 
   // An asynchronous listener bus for Spark events
-  private[spark] val listenerBus = new LiveListenerBus
+  @transient private[spark] val listenerBus = new LiveListenerBus
 
   // Create the Spark execution environment (cache, map output tracker, etc)
-  private[spark] val env = SparkEnv.create(
+  @transient private[spark] val env = SparkEnv.create(
     conf,
     "<driver>",
     conf.get("spark.driver.host"),
@@ -203,20 +203,20 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   SparkEnv.set(env)
 
   // Used to store a URL for each static file/jar together with the file's local timestamp
-  private[spark] val addedFiles = HashMap[String, Long]()
-  private[spark] val addedJars = HashMap[String, Long]()
+  @transient private[spark] val addedFiles = HashMap[String, Long]()
+  @transient private[spark] val addedJars = HashMap[String, Long]()
 
   // Keeps track of all persisted RDDs
-  private[spark] val persistentRdds = new TimeStampedWeakValueHashMap[Int, RDD[_]]
-  private[spark] val metadataCleaner =
+  @transient private[spark] val persistentRdds = new TimeStampedWeakValueHashMap[Int, RDD[_]]
+  @transient private[spark] val metadataCleaner =
     new MetadataCleaner(MetadataCleanerType.SPARK_CONTEXT, this.cleanup, conf)
 
   // Initialize the Spark UI, registering all associated listeners
-  private[spark] val ui = new SparkUI(this)
+  @transient private[spark] val ui = new SparkUI(this)
   ui.bind()
 
   // Optionally log Spark events
-  private[spark] val eventLogger: Option[EventLoggingListener] = {
+  @transient private[spark] val eventLogger: Option[EventLoggingListener] = {
     if (conf.getBoolean("spark.eventLog.enabled", false)) {
       val logger = new EventLoggingListener(appName, conf)
       logger.start()
@@ -241,14 +241,14 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
     value
   }
 
-  private[spark] val executorMemory = conf.getOption("spark.executor.memory")
+  @transient private[spark] val executorMemory = conf.getOption("spark.executor.memory")
     .orElse(Option(System.getenv("SPARK_EXECUTOR_MEMORY")))
     .orElse(Option(System.getenv("SPARK_MEM")).map(warnSparkMem))
     .map(Utils.memoryStringToMb)
     .getOrElse(512)
 
   // Environment variables to pass to our executors
-  private[spark] val executorEnvs = HashMap[String, String]()
+  @transient private[spark] val executorEnvs = HashMap[String, String]()
   for (key <- Seq("SPARK_CLASSPATH", "SPARK_LIBRARY_PATH", "SPARK_JAVA_OPTS");
       value <- Option(System.getenv(key))) {
     executorEnvs(key) = value
@@ -273,13 +273,13 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   executorEnvs("SPARK_USER") = sparkUser
 
   // Create and start the scheduler
-  private[spark] var taskScheduler = SparkContext.createTaskScheduler(this, master)
+  @transient private[spark] var taskScheduler = SparkContext.createTaskScheduler(this, master)
   taskScheduler.start()
 
-  @volatile private[spark] var dagScheduler = new DAGScheduler(this)
+  @volatile @transient private[spark] var dagScheduler = new DAGScheduler(this)
   dagScheduler.start()
 
-  private[spark] val cleaner: Option[ContextCleaner] = {
+  @transient private[spark] val cleaner: Option[ContextCleaner] = {
     if (conf.getBoolean("spark.cleaner.referenceTracking", true)) {
       Some(new ContextCleaner(this))
     } else {
@@ -292,7 +292,7 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   postApplicationStart()
 
   /** A default Hadoop Configuration for the Hadoop code (e.g. file systems) that we reuse. */
-  val hadoopConfiguration: Configuration = {
+  @transient val hadoopConfiguration: Configuration = {
     val env = SparkEnv.get
     val hadoopConf = SparkHadoopUtil.get.newConfiguration()
     // Explicitly check for S3 environment variables
@@ -314,10 +314,10 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
     hadoopConf
   }
 
-  private[spark] var checkpointDir: Option[String] = None
+  @transient private[spark] var checkpointDir: Option[String] = None
 
   // Thread Local variable that can be used by users to pass information down the stack
-  private val localProperties = new InheritableThreadLocal[Properties] {
+  @transient private val localProperties = new InheritableThreadLocal[Properties] {
     override protected def childValue(parent: Properties): Properties = new Properties(parent)
   }
 
@@ -393,8 +393,8 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   // Post init
   taskScheduler.postStartHook()
 
-  private val dagSchedulerSource = new DAGSchedulerSource(this.dagScheduler, this)
-  private val blockManagerSource = new BlockManagerSource(SparkEnv.get.blockManager, this)
+  @transient private val dagSchedulerSource = new DAGSchedulerSource(this.dagScheduler, this)
+  @transient private val blockManagerSource = new BlockManagerSource(SparkEnv.get.blockManager, this)
 
   private def initDriverMetrics() {
     SparkEnv.get.metricsSystem.registerSource(dagSchedulerSource)
@@ -1185,11 +1185,11 @@ class SparkContext(config: SparkConf) extends Logging with Serializable {
   /** Default min number of partitions for Hadoop RDDs when not given by user */
   def defaultMinSplits: Int = math.min(defaultParallelism, 2)
 
-  private val nextShuffleId = new AtomicInteger(0)
+  @transient private val nextShuffleId = new AtomicInteger(0)
 
   private[spark] def newShuffleId(): Int = nextShuffleId.getAndIncrement()
 
-  private val nextRddId = new AtomicInteger(0)
+  @transient private val nextRddId = new AtomicInteger(0)
 
   /** Register a new RDD, returning its RDD ID */
   private[spark] def newRddId(): Int = nextRddId.getAndIncrement()
