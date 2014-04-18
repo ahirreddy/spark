@@ -19,6 +19,8 @@ package org.apache.spark
 
 import java.io._
 import java.net.URI
+import java.rmi.Remote
+import java.rmi.server.UnicastRemoteObject
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.{Properties, UUID}
 import java.util.UUID.randomUUID
@@ -59,7 +61,8 @@ import org.apache.spark.util.{ClosureCleaner, MetadataCleaner, MetadataCleanerTy
  */
 
 @DeveloperApi
-class SparkContext(config: SparkConf) extends Logging with Serializable {
+@remote
+class SparkContext(config: SparkConf) extends UnicastRemoteObject with Remote with Logging {
 
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It

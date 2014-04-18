@@ -1,7 +1,11 @@
 package org.apache.spark
 
-import java.rmi.Naming
+import java.rmi.{Naming, Remote}
 import java.rmi.registry._
+
+import scala.reflect.{ClassTag, classTag}
+
+import org.apache.spark.rdd.RDD
 
 object RmiServer {
 
@@ -24,9 +28,8 @@ object RmiServer {
     }
 }
 
-@remote
-trait RemoteContextInterface extends java.rmi.Remote {
-    def getLocalProperty(key: String): String
+trait RemoteContextInterface extends Remote {
+  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int): RDD[T]
 }
 
 class RemoteContext(config: SparkConf) extends SparkContext(config) with RemoteContextInterface
