@@ -61,6 +61,69 @@ import org.apache.spark.util.{ClosureCleaner, MetadataCleaner, MetadataCleanerTy
 @DeveloperApi
 class SparkContext(config: SparkConf) extends Logging {
 
+  def init() {
+    if (!conf.contains("spark.master")) {
+      throw new SparkException("A master URL must be set in your configuration")
+    }
+    if (!conf.contains("spark.app.name")) {
+      throw new SparkException("An application must be set in your configuration")
+    }
+
+    if (conf.getBoolean("spark.logConf", false)) {
+      logInfo("Spark configuration:\n" + conf.toDebugString)
+    }
+
+    // Set Spark driver host and port system properties
+    conf.setIfMissing("spark.driver.host", Utils.localHostName())
+    conf.setIfMissing("spark.driver.port", "0")
+
+    conf.set("spark.tachyonStore.folderName", tachyonFolderName)
+
+    if (master == "yarn-client") System.setProperty("SPARK_YARN_MODE", "true")
+
+    SparkEnv.set(env)
+
+    ui.bind()
+
+    // At this point, all relevant SparkListeners have been registered, so begin releasing events
+    listenerBus.start()
+
+    // Add each JAR given through the constructor
+    if (jars != null) {
+      jars.foreach(addJar)
+    }
+
+    // Convert java options to env vars as a work around
+    // since we can't set env vars directly in sbt.
+    for { (envKey, propKey) <- Seq(("SPARK_HOME", "spark.home"), ("SPARK_TESTING", "spark.testing"))
+      value <- Option(System.getenv(envKey)).orElse(Option(System.getProperty(propKey)))} {
+      executorEnvs(envKey) = value
+    }
+    // The Mesos scheduler backend relies on this environment variable to set executor memory.
+    // TODO: Set this only in the Mesos scheduler.
+    executorEnvs("SPARK_EXECUTOR_MEMORY") = executorMemory + "m"
+    executorEnvs ++= conf.getExecutorEnv
+
+    // Create and start the scheduler
+    taskScheduler = SparkContext.createTaskScheduler(this, master)
+    taskScheduler.start()
+
+    dagScheduler = new DAGScheduler(this)
+    dagScheduler.start()
+
+    cleaner.foreach(_.start())
+
+    postEnvironmentUpdate()
+    postApplicationStart()
+
+    // Post init
+    taskScheduler.postStartHook()
+
+    initDriverMetrics()
+  }
+
+  init()
+
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It
   // contains a map from hostname to a list of input format splits on the host.
@@ -155,44 +218,26 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   def getConf: SparkConf = conf.clone()
 
-  if (!conf.contains("spark.master")) {
-    throw new SparkException("A master URL must be set in your configuration")
-  }
-  if (!conf.contains("spark.app.name")) {
-    throw new SparkException("An application must be set in your configuration")
-  }
-
-  if (conf.getBoolean("spark.logConf", false)) {
-    logInfo("Spark configuration:\n" + conf.toDebugString)
-  }
-
-  // Set Spark driver host and port system properties
-  conf.setIfMissing("spark.driver.host", Utils.localHostName())
-  conf.setIfMissing("spark.driver.port", "0")
-
-  val jars: Seq[String] = if (conf.contains("spark.jars")) {
+  lazy val jars: Seq[String] = if (conf.contains("spark.jars")) {
     conf.get("spark.jars").split(",").filter(_.size != 0)
   } else {
     null
   }
 
-  val master = conf.get("spark.master")
-  val appName = conf.get("spark.app.name")
+  lazy val master = conf.get("spark.master")
+  lazy val appName = conf.get("spark.app.name")
 
   // Generate the random name for a temp folder in Tachyon
   // Add a timestamp as the suffix here to make it more safe
-  val tachyonFolderName = "spark-" + randomUUID.toString()
-  conf.set("spark.tachyonStore.folderName", tachyonFolderName)
+  lazy val tachyonFolderName = "spark-" + randomUUID.toString()
 
   val isLocal = (master == "local" || master.startsWith("local["))
 
-  if (master == "yarn-client") System.setProperty("SPARK_YARN_MODE", "true")
-
   // An asynchronous listener bus for Spark events
-  private[spark] val listenerBus = new LiveListenerBus
+  private[spark] lazy val listenerBus = new LiveListenerBus
 
   // Create the Spark execution environment (cache, map output tracker, etc)
-  private[spark] val env = SparkEnv.create(
+  private[spark] lazy val env = SparkEnv.create(
     conf,
     "<driver>",
     conf.get("spark.driver.host"),
@@ -200,7 +245,6 @@ class SparkContext(config: SparkConf) extends Logging {
     isDriver = true,
     isLocal = isLocal,
     listenerBus = listenerBus)
-  SparkEnv.set(env)
 
   // Used to store a URL for each static file/jar together with the file's local timestamp
   private[spark] val addedFiles = HashMap[String, Long]()
@@ -212,8 +256,7 @@ class SparkContext(config: SparkConf) extends Logging {
     new MetadataCleaner(MetadataCleanerType.SPARK_CONTEXT, this.cleanup, conf)
 
   // Initialize the Spark UI, registering all associated listeners
-  private[spark] val ui = new SparkUI(this)
-  ui.bind()
+  private[spark] lazy val ui = new SparkUI(this)
 
   // Optionally log Spark events
   private[spark] val eventLogger: Option[EventLoggingListener] = {
@@ -225,15 +268,7 @@ class SparkContext(config: SparkConf) extends Logging {
     } else None
   }
 
-  // At this point, all relevant SparkListeners have been registered, so begin releasing events
-  listenerBus.start()
-
   val startTime = System.currentTimeMillis()
-
-  // Add each JAR given through the constructor
-  if (jars != null) {
-    jars.foreach(addJar)
-  }
 
   private def warnSparkMem(value: String): String = {
     logWarning("Using SPARK_MEM to set amount of memory to use per executor process is " +
@@ -253,16 +288,6 @@ class SparkContext(config: SparkConf) extends Logging {
       value <- Option(System.getenv(key))) {
     executorEnvs(key) = value
   }
-  // Convert java options to env vars as a work around
-  // since we can't set env vars directly in sbt.
-  for { (envKey, propKey) <- Seq(("SPARK_HOME", "spark.home"), ("SPARK_TESTING", "spark.testing"))
-    value <- Option(System.getenv(envKey)).orElse(Option(System.getProperty(propKey)))} {
-    executorEnvs(envKey) = value
-  }
-  // The Mesos scheduler backend relies on this environment variable to set executor memory.
-  // TODO: Set this only in the Mesos scheduler.
-  executorEnvs("SPARK_EXECUTOR_MEMORY") = executorMemory + "m"
-  executorEnvs ++= conf.getExecutorEnv
 
   // Set SPARK_USER for user who is running SparkContext.
   val sparkUser = Option {
@@ -272,12 +297,9 @@ class SparkContext(config: SparkConf) extends Logging {
   }
   executorEnvs("SPARK_USER") = sparkUser
 
-  // Create and start the scheduler
-  private[spark] var taskScheduler = SparkContext.createTaskScheduler(this, master)
-  taskScheduler.start()
+  private[spark] var taskScheduler: TaskScheduler = _
 
-  @volatile private[spark] var dagScheduler = new DAGScheduler(this)
-  dagScheduler.start()
+  @volatile private[spark] var dagScheduler: DAGScheduler = _
 
   private[spark] val cleaner: Option[ContextCleaner] = {
     if (conf.getBoolean("spark.cleaner.referenceTracking", true)) {
@@ -286,10 +308,6 @@ class SparkContext(config: SparkConf) extends Logging {
       None
     }
   }
-  cleaner.foreach(_.start())
-
-  postEnvironmentUpdate()
-  postApplicationStart()
 
   /** A default Hadoop Configuration for the Hadoop code (e.g. file systems) that we reuse. */
   val hadoopConfiguration: Configuration = {
@@ -390,18 +408,13 @@ class SparkContext(config: SparkConf) extends Logging {
     setLocalProperty(SparkContext.SPARK_JOB_GROUP_ID, null)
   }
 
-  // Post init
-  taskScheduler.postStartHook()
-
-  private val dagSchedulerSource = new DAGSchedulerSource(this.dagScheduler, this)
-  private val blockManagerSource = new BlockManagerSource(SparkEnv.get.blockManager, this)
+  private lazy val dagSchedulerSource = new DAGSchedulerSource(this.dagScheduler, this)
+  private lazy val blockManagerSource = new BlockManagerSource(SparkEnv.get.blockManager, this)
 
   private def initDriverMetrics() {
     SparkEnv.get.metricsSystem.registerSource(dagSchedulerSource)
     SparkEnv.get.metricsSystem.registerSource(blockManagerSource)
   }
-
-  initDriverMetrics()
 
   // Methods for creating RDDs
 
