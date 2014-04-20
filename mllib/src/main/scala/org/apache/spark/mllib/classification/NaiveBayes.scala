@@ -164,7 +164,7 @@ object NaiveBayes {
       println("Usage: NaiveBayes <master> <input_dir> [<lambda>]")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "NaiveBayes")
+    val sc = new SparkContextImpl(args(0), "NaiveBayes")
     val data = MLUtils.loadLabeledData(sc, args(1))
     val model = if (args.length == 2) {
       NaiveBayes.train(data)

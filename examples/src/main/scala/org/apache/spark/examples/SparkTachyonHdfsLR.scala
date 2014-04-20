@@ -57,7 +57,7 @@ object SparkTachyonHdfsLR {
     }
     val inputPath = args(1)
     val conf = SparkHadoopUtil.get.newConfiguration()
-    val sc = new SparkContext(args(0), "SparkTachyonHdfsLR",
+    val sc = new SparkContextImpl(args(0), "SparkTachyonHdfsLR",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass), Map(),
       InputFormatInfo.computePreferredLocations(
         Seq(new InputFormatInfo(conf, classOf[org.apache.hadoop.mapred.TextInputFormat], inputPath))

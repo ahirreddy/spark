@@ -36,7 +36,7 @@ class AsyncRDDActionsSuite extends FunSuite with BeforeAndAfterAll with Timeouts
   @transient private var sc: SparkContext = _
 
   override def beforeAll() {
-    sc = new SparkContext("local[2]", "test")
+    sc = new SparkContextImpl("local[2]", "test")
   }
 
   override def afterAll() {

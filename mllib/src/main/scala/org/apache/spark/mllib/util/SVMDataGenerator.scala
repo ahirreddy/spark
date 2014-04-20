@@ -48,7 +48,7 @@ object SVMDataGenerator {
     val nfeatures: Int = if (args.length > 3) args(3).toInt else 2
     val parts: Int = if (args.length > 4) args(4).toInt else 2
 
-    val sc = new SparkContext(sparkMaster, "SVMGenerator")
+    val sc = new SparkContextImpl(sparkMaster, "SVMGenerator")
 
     val globalRnd = new Random(94720)
     val trueWeights = new DoubleMatrix(1, nfeatures + 1,

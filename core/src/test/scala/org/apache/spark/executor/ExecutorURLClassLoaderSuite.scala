@@ -74,7 +74,7 @@ class ExecutorURLClassLoaderSuite extends FunSuite {
     val contextLoader = new URLClassLoader(Array(jar), Utils.getContextOrSparkClassLoader)
     Thread.currentThread().setContextClassLoader(contextLoader)
 
-    val sc = new SparkContext("local", "driverLoaderTest")
+    val sc = new SparkContextImpl("local", "driverLoaderTest")
 
     try {
       sc.makeRDD(1 to 5, 2).mapPartitions { x =>

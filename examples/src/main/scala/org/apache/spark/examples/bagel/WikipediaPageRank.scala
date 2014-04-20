@@ -48,7 +48,7 @@ object WikipediaPageRank {
     val usePartitioner = args(4).toBoolean
 
     sparkConf.setMaster(host).setAppName("WikipediaPageRank")
-    val sc = new SparkContext(sparkConf)
+    val sc = new SparkContextImpl(sparkConf)
 
     // Parse the Wikipedia page data into a graph
     val input = sc.textFile(inputFile)

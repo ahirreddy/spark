@@ -21,7 +21,7 @@ import org.scalatest.{Assertions, FunSuite}
 
 class SparkContextInfoSuite extends FunSuite with LocalSparkContext {
   test("getPersistentRDDs only returns RDDs that are marked as cached") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     assert(sc.getPersistentRDDs.isEmpty === true)
 
     val rdd = sc.makeRDD(Array(1, 2, 3, 4), 2)
@@ -33,7 +33,7 @@ class SparkContextInfoSuite extends FunSuite with LocalSparkContext {
   }
 
   test("getPersistentRDDs returns an immutable map") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val rdd1 = sc.makeRDD(Array(1, 2, 3, 4), 2).cache()
 
     val myRdds = sc.getPersistentRDDs
@@ -48,7 +48,7 @@ class SparkContextInfoSuite extends FunSuite with LocalSparkContext {
   }
 
   test("getRDDStorageInfo only reports on RDDs that actually persist data") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val rdd = sc.makeRDD(Array(1, 2, 3, 4), 2).cache()
 
     assert(sc.getRDDStorageInfo.size === 0)
@@ -58,7 +58,7 @@ class SparkContextInfoSuite extends FunSuite with LocalSparkContext {
   }
 
   test("call sites report correct locations") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     testPackage.runCallSiteTest(sc)
   }
 }

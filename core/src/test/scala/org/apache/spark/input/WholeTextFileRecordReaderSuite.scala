@@ -41,7 +41,7 @@ class WholeTextFileRecordReaderSuite extends FunSuite with BeforeAndAfterAll {
   private var sc: SparkContext = _
 
   override def beforeAll() {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
 
     // Set the block size of local file system to test whether files are split right or not.
     sc.hadoopConfiguration.setLong("fs.local.block.size", 32)

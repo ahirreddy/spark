@@ -45,7 +45,7 @@ object TallSkinnyPCA {
       .setAppName("TallSkinnyPCA")
       .setSparkHome(System.getenv("SPARK_HOME"))
       .setJars(SparkContext.jarOfClass(this.getClass))
-    val sc = new SparkContext(conf)
+    val sc = new SparkContextImpl(conf)
 
     // Load and parse the data file.
     val rows = sc.textFile(args(1)).map { line =>

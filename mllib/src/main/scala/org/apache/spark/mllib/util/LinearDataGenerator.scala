@@ -126,7 +126,7 @@ object LinearDataGenerator {
     val parts: Int = if (args.length > 4) args(4).toInt else 2
     val eps = 10
 
-    val sc = new SparkContext(sparkMaster, "LinearDataGenerator")
+    val sc = new SparkContextImpl(sparkMaster, "LinearDataGenerator")
     val data = generateLinearRDD(sc, nexamples, nfeatures, eps, nparts = parts)
 
     MLUtils.saveLabeledData(data, outputPath)

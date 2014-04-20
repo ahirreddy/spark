@@ -47,7 +47,7 @@ object WikipediaPageRankStandalone {
 
     sparkConf.setMaster(host).setAppName("WikipediaPageRankStandalone")
 
-    val sc = new SparkContext(sparkConf)
+    val sc = new SparkContextImpl(sparkConf)
 
     val input = sc.textFile(inputFile)
     val partitioner = new HashPartitioner(sc.defaultParallelism)

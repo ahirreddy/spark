@@ -30,7 +30,7 @@ class TaskContextSuite extends FunSuite with BeforeAndAfter with LocalSparkConte
 
   test("Calls executeOnCompleteCallbacks after failure") {
     var completed = false
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val rdd = new RDD[String](sc, List()) {
       override def getPartitions = Array[Partition](StubPartition(0))
       override def compute(split: Partition, context: TaskContext) = {

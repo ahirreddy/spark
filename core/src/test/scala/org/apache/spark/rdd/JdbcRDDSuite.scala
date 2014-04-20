@@ -51,7 +51,7 @@ class JdbcRDDSuite extends FunSuite with BeforeAndAfter with LocalSparkContext {
   }
 
   test("basic functionality") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val rdd = new JdbcRDD(
       sc,
       () => { DriverManager.getConnection("jdbc:derby:target/JdbcRDDSuiteDb") },

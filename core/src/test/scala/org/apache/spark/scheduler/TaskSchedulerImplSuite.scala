@@ -138,7 +138,7 @@ class TaskSchedulerImplSuite extends FunSuite with LocalSparkContext with Loggin
   }
 
   test("FIFO Scheduler Test") {
-    sc = new SparkContext("local", "TaskSchedulerImplSuite")
+    sc = new SparkContextImpl("local", "TaskSchedulerImplSuite")
     val taskScheduler = new TaskSchedulerImpl(sc)
     val taskSet = FakeTask.createTaskSet(1)
 
@@ -162,7 +162,7 @@ class TaskSchedulerImplSuite extends FunSuite with LocalSparkContext with Loggin
   }
 
   test("Fair Scheduler Test") {
-    sc = new SparkContext("local", "TaskSchedulerImplSuite")
+    sc = new SparkContextImpl("local", "TaskSchedulerImplSuite")
     val taskScheduler = new TaskSchedulerImpl(sc)
     val taskSet = FakeTask.createTaskSet(1)
 
@@ -216,7 +216,7 @@ class TaskSchedulerImplSuite extends FunSuite with LocalSparkContext with Loggin
   }
 
   test("Nested Pool Test") {
-    sc = new SparkContext("local", "TaskSchedulerImplSuite")
+    sc = new SparkContextImpl("local", "TaskSchedulerImplSuite")
     val taskScheduler = new TaskSchedulerImpl(sc)
     val taskSet = FakeTask.createTaskSet(1)
 
@@ -263,7 +263,7 @@ class TaskSchedulerImplSuite extends FunSuite with LocalSparkContext with Loggin
   }
 
   test("Scheduler does not always schedule tasks on the same workers") {
-    sc = new SparkContext("local", "TaskSchedulerImplSuite")
+    sc = new SparkContextImpl("local", "TaskSchedulerImplSuite")
     val taskScheduler = new TaskSchedulerImpl(sc)
     taskScheduler.initialize(new FakeSchedulerBackend)
     // Need to initialize a DAGScheduler for the taskScheduler to use for callbacks.
@@ -294,7 +294,7 @@ class TaskSchedulerImplSuite extends FunSuite with LocalSparkContext with Loggin
   }
 
   test("Scheduler correctly accounts for multiple CPUs per task") {
-    sc = new SparkContext("local", "TaskSchedulerImplSuite")
+    sc = new SparkContextImpl("local", "TaskSchedulerImplSuite")
     val taskCpus = 2
 
     sc.conf.set("spark.task.cpus", taskCpus.toString)

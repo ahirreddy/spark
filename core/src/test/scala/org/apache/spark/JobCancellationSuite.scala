@@ -46,7 +46,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
 
   test("local mode, FIFO scheduler") {
     System.setProperty("spark.scheduler.mode", "FIFO")
-    sc = new SparkContext("local[2]", "test")
+    sc = new SparkContextImpl("local[2]", "test")
     testCount()
     testTake()
     // Make sure we can still launch tasks.
@@ -57,7 +57,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
     System.setProperty("spark.scheduler.mode", "FAIR")
     val xmlPath = getClass.getClassLoader.getResource("fairscheduler.xml").getFile()
     System.setProperty("spark.scheduler.allocation.file", xmlPath)
-    sc = new SparkContext("local[2]", "test")
+    sc = new SparkContextImpl("local[2]", "test")
     testCount()
     testTake()
     // Make sure we can still launch tasks.
@@ -66,7 +66,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
 
   test("cluster mode, FIFO scheduler") {
     System.setProperty("spark.scheduler.mode", "FIFO")
-    sc = new SparkContext("local-cluster[2,1,512]", "test")
+    sc = new SparkContextImpl("local-cluster[2,1,512]", "test")
     testCount()
     testTake()
     // Make sure we can still launch tasks.
@@ -77,7 +77,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
     System.setProperty("spark.scheduler.mode", "FAIR")
     val xmlPath = getClass.getClassLoader.getResource("fairscheduler.xml").getFile()
     System.setProperty("spark.scheduler.allocation.file", xmlPath)
-    sc = new SparkContext("local-cluster[2,1,512]", "test")
+    sc = new SparkContextImpl("local-cluster[2,1,512]", "test")
     testCount()
     testTake()
     // Make sure we can still launch tasks.
@@ -85,7 +85,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
   }
 
   test("job group") {
-    sc = new SparkContext("local[2]", "test")
+    sc = new SparkContextImpl("local[2]", "test")
 
     // Add a listener to release the semaphore once any tasks are launched.
     val sem = new Semaphore(0)
@@ -120,7 +120,7 @@ class JobCancellationSuite extends FunSuite with ShouldMatchers with BeforeAndAf
     val sem1 = new Semaphore(0)
     val sem2 = new Semaphore(0)
 
-    sc = new SparkContext("local[2]", "test")
+    sc = new SparkContextImpl("local[2]", "test")
     sc.dagScheduler.addSparkListener(new SparkListener {
       override def onTaskStart(taskStart: SparkListenerTaskStart) {
         sem1.release()

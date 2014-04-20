@@ -39,7 +39,7 @@ object ThreadingSuiteState {
 class ThreadingSuite extends FunSuite with LocalSparkContext {
 
   test("accessing SparkContext form a different thread") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val nums = sc.parallelize(1 to 10, 2)
     val sem = new Semaphore(0)
     @volatile var answer1: Int = 0
@@ -57,7 +57,7 @@ class ThreadingSuite extends FunSuite with LocalSparkContext {
   }
 
   test("accessing SparkContext form multiple threads") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val nums = sc.parallelize(1 to 10, 2)
     val sem = new Semaphore(0)
     @volatile var ok = true
@@ -85,7 +85,7 @@ class ThreadingSuite extends FunSuite with LocalSparkContext {
   }
 
   test("accessing multi-threaded SparkContext form multiple threads") {
-    sc = new SparkContext("local[4]", "test")
+    sc = new SparkContextImpl("local[4]", "test")
     val nums = sc.parallelize(1 to 10, 2)
     val sem = new Semaphore(0)
     @volatile var ok = true
@@ -115,7 +115,7 @@ class ThreadingSuite extends FunSuite with LocalSparkContext {
   test("parallel job execution") {
     // This test launches two jobs with two threads each on a 4-core local cluster. Each thread
     // waits until there are 4 threads running at once, to test that both jobs have been launched.
-    sc = new SparkContext("local[4]", "test")
+    sc = new SparkContextImpl("local[4]", "test")
     val nums = sc.parallelize(1 to 2, 2)
     val sem = new Semaphore(0)
     ThreadingSuiteState.clear()
@@ -148,7 +148,7 @@ class ThreadingSuite extends FunSuite with LocalSparkContext {
   }
 
   test("set local properties in different thread") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sem = new Semaphore(0)
 
     val threads = (1 to 5).map { i =>
@@ -168,7 +168,7 @@ class ThreadingSuite extends FunSuite with LocalSparkContext {
   }
 
   test("set and get local properties in parent-children thread") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     sc.setLocalProperty("test", "parent")
     val sem = new Semaphore(0)
 

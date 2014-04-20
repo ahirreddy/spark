@@ -19,7 +19,7 @@ package org.apache.spark.ui
 
 import scala.util.Random
 
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{SparkConf, SparkContext, SparkContextImpl}
 import org.apache.spark.SparkContext._
 import org.apache.spark.scheduler.SchedulingMode
 
@@ -46,7 +46,7 @@ private[spark] object UIWorkloadGenerator {
     if (schedulingMode == SchedulingMode.FAIR) {
       conf.set("spark.scheduler.mode", "FAIR")
     }
-    val sc = new SparkContext(conf)
+    val sc = new SparkContextImpl(conf)
 
     def setProperties(s: String) = {
       if(schedulingMode == SchedulingMode.FAIR) {

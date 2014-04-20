@@ -56,7 +56,7 @@ object CassandraTest {
   def main(args: Array[String]) {
 
     // Get a SparkContext
-    val sc = new SparkContext(args(0), "casDemo")
+    val sc = new SparkContextImpl(args(0), "casDemo")
 
     // Build the job configuration with ConfigHelper provided by Cassandra
     val job = new Job()

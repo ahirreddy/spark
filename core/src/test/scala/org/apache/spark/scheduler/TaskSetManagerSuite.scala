@@ -88,7 +88,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   val MAX_TASK_FAILURES = 4
 
   test("TaskSet with no preferences") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"))
     val taskSet = FakeTask.createTaskSet(1)
     val manager = new TaskSetManager(sched, taskSet, MAX_TASK_FAILURES)
@@ -111,7 +111,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("multiple offers with no preferences") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"))
     val taskSet = FakeTask.createTaskSet(3)
     val manager = new TaskSetManager(sched, taskSet, MAX_TASK_FAILURES)
@@ -142,7 +142,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("basic delay scheduling") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"), ("exec2", "host2"))
     val taskSet = FakeTask.createTaskSet(4,
       Seq(TaskLocation("host1", "exec1")),
@@ -186,7 +186,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("delay scheduling with fallback") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc,
       ("exec1", "host1"), ("exec2", "host2"), ("exec3", "host3"))
     val taskSet = FakeTask.createTaskSet(5,
@@ -226,7 +226,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("delay scheduling with failed hosts") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"), ("exec2", "host2"))
     val taskSet = FakeTask.createTaskSet(3,
       Seq(TaskLocation("host1")),
@@ -258,7 +258,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("task result lost") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"))
     val taskSet = FakeTask.createTaskSet(1)
     val clock = new FakeClock
@@ -275,7 +275,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
   }
 
   test("repeated failures lead to task set abortion") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"))
     val taskSet = FakeTask.createTaskSet(1)
     val clock = new FakeClock
@@ -304,7 +304,7 @@ class TaskSetManagerSuite extends FunSuite with LocalSparkContext with Logging {
       // dont wait to jump locality levels in this test
       set("spark.locality.wait", "0")
 
-    sc = new SparkContext("local", "test", conf)
+    sc = new SparkContextImpl("local", "test", conf)
     // two executors on same host, one on different.
     val sched = new FakeTaskScheduler(sc, ("exec1", "host1"),
       ("exec1.1", "host1"), ("exec2", "host2"))

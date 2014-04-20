@@ -37,7 +37,7 @@ import scala.xml.Node
 class UISuite extends FunSuite {
 
   test("basic ui visibility") {
-    withSpark(new SparkContext("local", "test")) { sc =>
+    withSpark(new SparkContextImpl("local", "test")) { sc =>
       // test if the ui is visible, and all the expected tabs are visible
       eventually(timeout(10 seconds), interval(50 milliseconds)) {
         val html = Source.fromURL(sc.ui.appUIAddress).mkString
@@ -51,7 +51,7 @@ class UISuite extends FunSuite {
   }
 
   test("visibility at localhost:4040") {
-    withSpark(new SparkContext("local", "test")) { sc =>
+    withSpark(new SparkContextImpl("local", "test")) { sc =>
       // test if visible from http://localhost:4040
       eventually(timeout(10 seconds), interval(50 milliseconds)) {
         val html = Source.fromURL("http://localhost:4040").mkString
@@ -61,7 +61,7 @@ class UISuite extends FunSuite {
   }
 
   test("attaching a new tab") {
-    withSpark(new SparkContext("local", "test")) { sc =>
+    withSpark(new SparkContextImpl("local", "test")) { sc =>
       val sparkUI = sc.ui
 
       val newTab = new WebUITab(sparkUI, "foo") {
@@ -128,14 +128,14 @@ class UISuite extends FunSuite {
   }
 
   test("verify appUIAddress contains the scheme") {
-    withSpark(new SparkContext("local", "test")) { sc =>
+    withSpark(new SparkContextImpl("local", "test")) { sc =>
       val uiAddress = sc.ui.appUIAddress
       assert(uiAddress.equals("http://" + sc.ui.appUIHostPort))
     }
   }
 
   test("verify appUIAddress contains the port") {
-    withSpark(new SparkContext("local", "test")) { sc =>
+    withSpark(new SparkContextImpl("local", "test")) { sc =>
       val splitUIAddress = sc.ui.appUIAddress.split(':')
       assert(splitUIAddress(2).toInt == sc.ui.boundPort)
     }

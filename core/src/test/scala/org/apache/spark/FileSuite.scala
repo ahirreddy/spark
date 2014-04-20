@@ -34,7 +34,7 @@ import org.apache.spark.SparkContext._
 class FileSuite extends FunSuite with LocalSparkContext {
 
   test("text files") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 4)
@@ -48,7 +48,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("text files (compressed)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val normalDir = new File(tempDir, "output_normal").getAbsolutePath
     val compressedOutputDir = new File(tempDir, "output_compressed").getAbsolutePath
@@ -70,7 +70,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("SequenceFiles") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (x, "a" * x)) // (1,a), (2,aa), (3,aaa)
@@ -81,7 +81,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("SequenceFile (compressed)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val normalDir = new File(tempDir, "output_normal").getAbsolutePath
     val compressedOutputDir = new File(tempDir, "output_compressed").getAbsolutePath
@@ -103,7 +103,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("SequenceFile with writable key") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (new IntWritable(x), "a" * x))
@@ -114,7 +114,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("SequenceFile with writable value") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (x, new Text("a" * x)))
@@ -125,7 +125,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("SequenceFile with writable key and value") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (new IntWritable(x), new Text("a" * x)))
@@ -136,7 +136,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("implicit conversions in reading SequenceFiles") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (x, "a" * x)) // (1,a), (2,aa), (3,aaa)
@@ -153,7 +153,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("object files of ints") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 4)
@@ -164,7 +164,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("object files of complex types") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (x, "a" * x))
@@ -176,7 +176,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
 
   test("write SequenceFile using new Hadoop API") {
     import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (new IntWritable(x), new Text("a" * x)))
@@ -188,7 +188,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
 
   test("read SequenceFile using new Hadoop API") {
     import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val outputDir = new File(tempDir, "output").getAbsolutePath
     val nums = sc.makeRDD(1 to 3).map(x => (new IntWritable(x), new Text("a" * x)))
@@ -199,7 +199,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test("file caching") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempDir = Files.createTempDir()
     val out = new FileWriter(tempDir + "/input")
     out.write("Hello world!\n")
@@ -213,7 +213,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("prevent user from overwriting the empty directory (old Hadoop API)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array((1, "a"), (1, "a"), (2, "b"), (3, "c")), 1)
     intercept[FileAlreadyExistsException] {
@@ -222,7 +222,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("prevent user from overwriting the non-empty directory (old Hadoop API)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array((1, "a"), (1, "a"), (2, "b"), (3, "c")), 1)
     randomRDD.saveAsTextFile(tempdir.getPath + "/output")
@@ -233,7 +233,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("prevent user from overwriting the empty directory (new Hadoop API)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array(("key1", "a"), ("key2", "a"), ("key3", "b"), ("key4", "c")), 1)
     intercept[FileAlreadyExistsException] {
@@ -242,7 +242,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("prevent user from overwriting the non-empty directory (new Hadoop API)") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array(("key1", "a"), ("key2", "a"), ("key3", "b"), ("key4", "c")), 1)
     randomRDD.saveAsNewAPIHadoopFile[NewTextOutputFormat[String, String]](tempdir.getPath + "/output")
@@ -253,7 +253,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("save Hadoop Dataset through old Hadoop API") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array(("key1", "a"), ("key2", "a"), ("key3", "b"), ("key4", "c")), 1)
     val job = new JobConf()
@@ -266,7 +266,7 @@ class FileSuite extends FunSuite with LocalSparkContext {
   }
 
   test ("save Hadoop Dataset through new Hadoop API") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val tempdir = Files.createTempDir()
     val randomRDD = sc.parallelize(Array(("key1", "a"), ("key2", "a"), ("key3", "b"), ("key4", "c")), 1)
     val job = new Job(sc.hadoopConfiguration)

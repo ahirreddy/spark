@@ -70,7 +70,7 @@ object MFDataGenerator {
     val test: Boolean = if (args.length > 8) args(8).toBoolean else false
     val testSampFact: Double = if (args.length > 9) args(9).toDouble else 0.1
 
-    val sc = new SparkContext(sparkMaster, "MFDataGenerator")
+    val sc = new SparkContextImpl(sparkMaster, "MFDataGenerator")
 
     val A = DoubleMatrix.randn(m, rank)
     val B = DoubleMatrix.randn(rank, n)

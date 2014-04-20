@@ -111,7 +111,7 @@ class DAGSchedulerSuite extends FunSuite with BeforeAndAfter with LocalSparkCont
   }
 
   before {
-    sc = new SparkContext("local", "DAGSchedulerSuite")
+    sc = new SparkContextImpl("local", "DAGSchedulerSuite")
     sparkListener.successfulStages.clear()
     sparkListener.failedStages.clear()
     sc.addSparkListener(sparkListener)

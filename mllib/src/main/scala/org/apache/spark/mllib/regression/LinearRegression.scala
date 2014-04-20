@@ -162,7 +162,7 @@ object LinearRegressionWithSGD {
       println("Usage: LinearRegression <master> <input_dir> <step_size> <niters>")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "LinearRegression")
+    val sc = new SparkContextImpl(args(0), "LinearRegression")
     val data = MLUtils.loadLabeledData(sc, args(1))
     val model = LinearRegressionWithSGD.train(data, args(3).toInt, args(2).toDouble)
     println("Weights: " + model.weights)

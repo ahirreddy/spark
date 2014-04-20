@@ -26,7 +26,7 @@ class ConcurrentHiveSuite extends FunSuite with BeforeAndAfterAll {
     test("Multiple Hive Instances") {
       (1 to 10).map { i =>
         val ts =
-          new TestHiveContext(new SparkContext("local", s"TestSQLContext$i", new SparkConf()))
+          new TestHiveContext(new SparkContextImpl("local", s"TestSQLContext$i", new SparkConf()))
         ts.executeSql("SHOW TABLES").toRdd.collect()
         ts.executeSql("SELECT * FROM src").toRdd.collect()
         ts.executeSql("SHOW TABLES").toRdd.collect()

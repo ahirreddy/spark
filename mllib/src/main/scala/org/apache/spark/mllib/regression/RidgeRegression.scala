@@ -177,7 +177,7 @@ object RidgeRegressionWithSGD {
         "<regularization_parameter> <niters>")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "RidgeRegression")
+    val sc = new SparkContextImpl(args(0), "RidgeRegression")
     val data = MLUtils.loadLabeledData(sc, args(1))
     val model = RidgeRegressionWithSGD.train(data, args(4).toInt, args(2).toDouble,
         args(3).toDouble)

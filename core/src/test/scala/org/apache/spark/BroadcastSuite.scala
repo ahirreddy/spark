@@ -29,7 +29,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
   private val torrentConf = broadcastConf("TorrentBroadcastFactory")
 
   test("Using HttpBroadcast locally") {
-    sc = new SparkContext("local", "test", httpConf)
+    sc = new SparkContextImpl("local", "test", httpConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to 2).map(x => (x, broadcast.value.sum))
@@ -37,7 +37,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
   }
 
   test("Accessing HttpBroadcast variables from multiple threads") {
-    sc = new SparkContext("local[10]", "test", httpConf)
+    sc = new SparkContextImpl("local[10]", "test", httpConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to 10).map(x => (x, broadcast.value.sum))
@@ -46,7 +46,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
 
   test("Accessing HttpBroadcast variables in a local cluster") {
     val numSlaves = 4
-    sc = new SparkContext("local-cluster[%d, 1, 512]".format(numSlaves), "test", httpConf)
+    sc = new SparkContextImpl("local-cluster[%d, 1, 512]".format(numSlaves), "test", httpConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to numSlaves).map(x => (x, broadcast.value.sum))
@@ -54,7 +54,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
   }
 
   test("Using TorrentBroadcast locally") {
-    sc = new SparkContext("local", "test", torrentConf)
+    sc = new SparkContextImpl("local", "test", torrentConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to 2).map(x => (x, broadcast.value.sum))
@@ -62,7 +62,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
   }
 
   test("Accessing TorrentBroadcast variables from multiple threads") {
-    sc = new SparkContext("local[10]", "test", torrentConf)
+    sc = new SparkContextImpl("local[10]", "test", torrentConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to 10).map(x => (x, broadcast.value.sum))
@@ -71,7 +71,7 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
 
   test("Accessing TorrentBroadcast variables in a local cluster") {
     val numSlaves = 4
-    sc = new SparkContext("local-cluster[%d, 1, 512]".format(numSlaves), "test", torrentConf)
+    sc = new SparkContextImpl("local-cluster[%d, 1, 512]".format(numSlaves), "test", torrentConf)
     val list = List[Int](1, 2, 3, 4)
     val broadcast = sc.broadcast(list)
     val results = sc.parallelize(1 to numSlaves).map(x => (x, broadcast.value.sum))
@@ -265,9 +265,9 @@ class BroadcastSuite extends FunSuite with LocalSparkContext {
       removeFromDriver: Boolean) {
 
     sc = if (distributed) {
-      new SparkContext("local-cluster[%d, 1, 512]".format(numSlaves), "test", broadcastConf)
+      new SparkContextImpl("local-cluster[%d, 1, 512]".format(numSlaves), "test", broadcastConf)
     } else {
-      new SparkContext("local", "test", broadcastConf)
+      new SparkContextImpl("local", "test", broadcastConf)
     }
     val blockManagerMaster = sc.env.blockManager.master
     val list = List[Int](1, 2, 3, 4)

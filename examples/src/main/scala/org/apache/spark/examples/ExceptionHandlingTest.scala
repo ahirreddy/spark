@@ -26,7 +26,7 @@ object ExceptionHandlingTest {
       System.exit(1)
     }
 
-    val sc = new SparkContext(args(0), "ExceptionHandlingTest",
+    val sc = new SparkContextImpl(args(0), "ExceptionHandlingTest",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
     sc.parallelize(0 until sc.defaultParallelism).foreach { i =>
       if (math.random > 0.75) {

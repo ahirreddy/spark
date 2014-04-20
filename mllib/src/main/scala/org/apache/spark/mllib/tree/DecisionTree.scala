@@ -1040,7 +1040,7 @@ object DecisionTree extends Serializable with Logging {
       System.exit(1)
     }
 
-    val sc = new SparkContext(args(0), "DecisionTree")
+    val sc = new SparkContextImpl(args(0), "DecisionTree")
 
     val argList = args.toList.drop(1)
     type OptionMap = Map[Symbol, Any]

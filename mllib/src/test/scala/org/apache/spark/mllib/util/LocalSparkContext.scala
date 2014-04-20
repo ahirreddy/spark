@@ -26,7 +26,7 @@ trait LocalSparkContext extends BeforeAndAfterAll { self: Suite =>
   @transient var sc: SparkContext = _
 
   override def beforeAll() {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     super.beforeAll()
   }
 

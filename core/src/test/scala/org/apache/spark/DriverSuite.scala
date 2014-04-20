@@ -55,7 +55,7 @@ class DriverSuite extends FunSuite with Timeouts {
 object DriverWithoutCleanup {
   def main(args: Array[String]) {
     Logger.getRootLogger().setLevel(Level.WARN)
-    val sc = new SparkContext(args(0), "DriverWithoutCleanup")
+    val sc = new SparkContextImpl(args(0), "DriverWithoutCleanup")
     sc.parallelize(1 to 100, 4).count()
   }
 }

@@ -190,7 +190,7 @@ object LogisticRegressionWithSGD {
         "<niters>")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "LogisticRegression")
+    val sc = new SparkContextImpl(args(0), "LogisticRegression")
     val data = MLUtils.loadLabeledData(sc, args(1))
     val model = LogisticRegressionWithSGD.train(data, args(3).toInt, args(2).toDouble)
     println("Weights: " + model.weights)

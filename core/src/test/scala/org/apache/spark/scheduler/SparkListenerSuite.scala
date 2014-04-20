@@ -34,7 +34,7 @@ class SparkListenerSuite extends FunSuite with LocalSparkContext with ShouldMatc
   val WAIT_TIMEOUT_MILLIS = 10000
 
   before {
-    sc = new SparkContext("local", "SparkListenerSuite")
+    sc = new SparkContextImpl("local", "SparkListenerSuite")
   }
 
   override def afterAll {

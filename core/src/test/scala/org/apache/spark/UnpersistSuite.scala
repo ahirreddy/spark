@@ -23,7 +23,7 @@ import org.scalatest.time.{Millis, Span}
 
 class UnpersistSuite extends FunSuite with LocalSparkContext {
   test("unpersist RDD") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val rdd = sc.makeRDD(Array(1, 2, 3, 4), 2).cache()
     rdd.count
     assert(sc.persistentRdds.isEmpty === false)

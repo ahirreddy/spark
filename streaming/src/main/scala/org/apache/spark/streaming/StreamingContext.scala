@@ -68,7 +68,7 @@ class StreamingContext private[streaming] (
   }
 
   /**
-   * Create a StreamingContext by providing the configuration necessary for a new SparkContext.
+   * Create a StreamingContext by providing the configuration necessary for a new SparkContextImpl.
    * @param conf a org.apache.spark.SparkConf object specifying Spark parameters
    * @param batchDuration the time interval at which streaming data will be divided into batches
    */
@@ -77,7 +77,7 @@ class StreamingContext private[streaming] (
   }
 
   /**
-   * Create a StreamingContext by providing the details necessary for creating a new SparkContext.
+   * Create a StreamingContext by providing the details necessary for creating a new SparkContextImpl.
    * @param master cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
    * @param appName a name for your job, to display on the cluster web UI
    * @param batchDuration the time interval at which streaming data will be divided into batches
@@ -111,7 +111,7 @@ class StreamingContext private[streaming] (
 
   private[streaming] val sc: SparkContext = {
     if (isCheckpointPresent) {
-      new SparkContext(cp_.sparkConf)
+      new SparkContextImpl(cp_.sparkConf)
     } else {
       sc_
     }
@@ -541,7 +541,7 @@ object StreamingContext extends Logging {
     if (MetadataCleaner.getDelaySeconds(conf) < 0) {
       MetadataCleaner.setDelaySeconds(conf, DEFAULT_CLEANER_TTL)
     }
-    val sc = new SparkContext(conf)
+    val sc = new SparkContextImpl(conf)
     sc
   }
 

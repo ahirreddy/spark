@@ -189,7 +189,7 @@ object SVMWithSGD {
       println("Usage: SVM <master> <input_dir> <step_size> <regularization_parameter> <niters>")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "SVM")
+    val sc = new SparkContextImpl(args(0), "SVM")
     val data = MLUtils.loadLabeledData(sc, args(1))
     val model = SVMWithSGD.train(data, args(4).toInt, args(2).toDouble, args(3).toDouble)
 

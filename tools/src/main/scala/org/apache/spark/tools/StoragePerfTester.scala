@@ -51,7 +51,7 @@ object StoragePerfTester {
     System.setProperty("spark.shuffle.sync", "true")
 
     // This is only used to instantiate a BlockManager. All thread scheduling is done manually.
-    val sc = new SparkContext("local[4]", "Write Tester")
+    val sc = new SparkContextImpl("local[4]", "Write Tester")
     val blockManager = sc.env.blockManager
 
     def writeOutputBytes(mapId: Int, total: AtomicLong) = {

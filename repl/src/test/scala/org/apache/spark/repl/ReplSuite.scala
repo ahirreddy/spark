@@ -79,7 +79,7 @@ class ReplSuite extends FunSuite {
 
     val out = new StringWriter()
     val interp = new ILoop(new PrintWriter(out))
-    interp.sparkContext = new SparkContext("local", "repl-test")
+    interp.sparkContext = new SparkContextImpl("local", "repl-test")
     interp.createInterpreter()
     interp.intp.initialize()
     interp.sparkContext.setLocalProperty("someKey", "someValue")

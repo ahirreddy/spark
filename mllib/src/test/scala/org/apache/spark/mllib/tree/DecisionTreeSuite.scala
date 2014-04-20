@@ -34,7 +34,7 @@ class DecisionTreeSuite extends FunSuite with BeforeAndAfterAll {
   @transient private var sc: SparkContext = _
 
   override def beforeAll() {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
   }
 
   override def afterAll() {

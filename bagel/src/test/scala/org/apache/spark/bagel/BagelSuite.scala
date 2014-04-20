@@ -43,7 +43,7 @@ class BagelSuite extends FunSuite with Assertions with BeforeAndAfter with Timeo
   }
 
   test("halting by voting") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val verts = sc.parallelize(Array("a", "b", "c", "d").map(id => (id, new TestVertex(true, 0))))
     val msgs = sc.parallelize(Array[(String, TestMessage)]())
     val numSupersteps = 5
@@ -58,7 +58,7 @@ class BagelSuite extends FunSuite with Assertions with BeforeAndAfter with Timeo
   }
 
   test("halting by message silence") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val verts = sc.parallelize(Array("a", "b", "c", "d").map(id => (id, new TestVertex(false, 0))))
     val msgs = sc.parallelize(Array("a" -> new TestMessage("a")))
     val numSupersteps = 5
@@ -83,7 +83,7 @@ class BagelSuite extends FunSuite with Assertions with BeforeAndAfter with Timeo
     // This tests whether jobs with a large number of iterations finish in a reasonable time,
     // because non-memoized recursion in RDD or DAGScheduler used to cause them to hang
     failAfter(10 seconds) {
-      sc = new SparkContext("local", "test")
+      sc = new SparkContextImpl("local", "test")
       val verts = sc.parallelize((1 to 4).map(id => (id.toString, new TestVertex(true, 0))))
       val msgs = sc.parallelize(Array[(String, TestMessage)]())
       val numSupersteps = 50
@@ -100,7 +100,7 @@ class BagelSuite extends FunSuite with Assertions with BeforeAndAfter with Timeo
 
   test("using non-default persistence level") {
     failAfter(10 seconds) {
-      sc = new SparkContext("local", "test")
+      sc = new SparkContextImpl("local", "test")
       val verts = sc.parallelize((1 to 4).map(id => (id.toString, new TestVertex(true, 0))))
       val msgs = sc.parallelize(Array[(String, TestMessage)]())
       val numSupersteps = 50

@@ -36,7 +36,7 @@ class CacheManagerSuite extends FunSuite with BeforeAndAfter with EasyMockSugar 
   var rdd: RDD[Int] = _
 
   before {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     blockManager = mock[BlockManager]
     cacheManager = new CacheManager(blockManager)
     split = new Partition { override def index: Int = 0 }

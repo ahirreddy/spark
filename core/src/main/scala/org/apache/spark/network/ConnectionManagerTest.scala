@@ -42,7 +42,7 @@ private[spark] object ConnectionManagerTest extends Logging{
       println("This runs only on a mesos cluster")
     }
 
-    val sc = new SparkContext(args(0), "ConnectionManagerTest")
+    val sc = new SparkContextImpl(args(0), "ConnectionManagerTest")
     val slavesFile = Source.fromFile(args(1))
     val slaves = slavesFile.mkString.split("\n")
     slavesFile.close()

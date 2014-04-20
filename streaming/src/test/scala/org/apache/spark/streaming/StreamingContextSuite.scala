@@ -95,7 +95,7 @@ class StreamingContextSuite extends FunSuite with BeforeAndAfter with Timeouts w
   }
 
   test("from existing SparkContext without ttl set") {
-    sc = new SparkContext(master, appName)
+    sc = new SparkContextImpl(master, appName)
     val exception = intercept[SparkException] {
       ssc = new StreamingContext(sc, batchDuration)
     }
@@ -179,7 +179,7 @@ class StreamingContextSuite extends FunSuite with BeforeAndAfter with Timeouts w
   test("stop gracefully") {
     val conf = new SparkConf().setMaster(master).setAppName(appName)
     conf.set("spark.cleaner.ttl", "3600")
-    sc = new SparkContext(conf)
+    sc = new SparkContextImpl(conf)
     for (i <- 1 to 4) {
       logInfo("==================================")
       ssc = new StreamingContext(sc, batchDuration)

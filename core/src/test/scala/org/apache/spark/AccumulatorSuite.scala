@@ -42,7 +42,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
   }
 
   test ("basic accumulation"){
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val acc : Accumulator[Int] = sc.accumulator(0)
 
     val d = sc.parallelize(1 to 20)
@@ -57,7 +57,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
   }
 
   test ("value not assignable from tasks") {
-    sc = new SparkContext("local", "test")
+    sc = new SparkContextImpl("local", "test")
     val acc : Accumulator[Int] = sc.accumulator(0)
 
     val d = sc.parallelize(1 to 20)
@@ -67,7 +67,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
   test ("add value to collection accumulators") {
     val maxI = 1000
     for (nThreads <- List(1, 10)) { // test single & multi-threaded
-      sc = new SparkContext("local[" + nThreads + "]", "test")
+      sc = new SparkContextImpl("local[" + nThreads + "]", "test")
       val acc: Accumulable[mutable.Set[Any], Any] = sc.accumulable(new mutable.HashSet[Any]())
       val d = sc.parallelize(1 to maxI)
       d.foreach {
@@ -84,7 +84,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
   test ("value not readable in tasks") {
     val maxI = 1000
     for (nThreads <- List(1, 10)) { // test single & multi-threaded
-      sc = new SparkContext("local[" + nThreads + "]", "test")
+      sc = new SparkContextImpl("local[" + nThreads + "]", "test")
       val acc: Accumulable[mutable.Set[Any], Any] = sc.accumulable(new mutable.HashSet[Any]())
       val d = sc.parallelize(1 to maxI)
       evaluating {
@@ -100,7 +100,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
     val maxI = 1000
     for (nThreads <- List(1, 10)) {
       // test single & multi-threaded
-      sc = new SparkContext("local[" + nThreads + "]", "test")
+      sc = new SparkContextImpl("local[" + nThreads + "]", "test")
       val setAcc = sc.accumulableCollection(mutable.HashSet[Int]())
       val bufferAcc = sc.accumulableCollection(mutable.ArrayBuffer[Int]())
       val mapAcc = sc.accumulableCollection(mutable.HashMap[Int,String]())
@@ -125,7 +125,7 @@ class AccumulatorSuite extends FunSuite with ShouldMatchers with LocalSparkConte
   test ("localValue readable in tasks") {
     val maxI = 1000
     for (nThreads <- List(1, 10)) { // test single & multi-threaded
-      sc = new SparkContext("local[" + nThreads + "]", "test")
+      sc = new SparkContextImpl("local[" + nThreads + "]", "test")
       val acc: Accumulable[mutable.Set[Any], Any] = sc.accumulable(new mutable.HashSet[Any]())
       val groupedInts = (1 to (maxI/20)).map {x => (20 * (x - 1) to 20 * x).toSet}
       val d = sc.parallelize(groupedInts)

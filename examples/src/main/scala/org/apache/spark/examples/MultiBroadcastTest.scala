@@ -27,7 +27,7 @@ object MultiBroadcastTest {
       System.exit(1)
     }
 
-    val sc = new SparkContext(args(0), "Multi-Broadcast Test",
+    val sc = new SparkContextImpl(args(0), "Multi-Broadcast Test",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
 
     val slices = if (args.length > 1) args(1).toInt else 2

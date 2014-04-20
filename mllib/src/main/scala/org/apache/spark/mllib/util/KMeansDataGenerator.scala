@@ -77,7 +77,7 @@ object KMeansDataGenerator {
     val r = args(5).toDouble
     val parts = if (args.length >= 7) args(6).toInt else 2
 
-    val sc = new SparkContext(sparkMaster, "KMeansDataGenerator")
+    val sc = new SparkContextImpl(sparkMaster, "KMeansDataGenerator")
     val data = generateKMeansRDD(sc, numPoints, k, d, r, parts)
     data.map(_.mkString(" ")).saveAsTextFile(outputPath)
 

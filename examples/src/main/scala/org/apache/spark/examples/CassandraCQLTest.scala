@@ -72,7 +72,7 @@ import org.apache.spark.SparkContext._
 object CassandraCQLTest {
 
   def main(args: Array[String]) {
-    val sc = new SparkContext(args(0),
+    val sc = new SparkContextImpl(args(0),
                "CQLTestApp",
                System.getenv("SPARK_HOME"),
                SparkContext.jarOfClass(this.getClass))

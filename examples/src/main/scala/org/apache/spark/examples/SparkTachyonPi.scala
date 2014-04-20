@@ -32,7 +32,7 @@ object SparkTachyonPi {
       System.err.println("Usage: SparkTachyonPi <master> [<slices>]")
       System.exit(1)
     }
-    val spark = new SparkContext(args(0), "SparkTachyonPi",
+    val spark = new SparkContextImpl(args(0), "SparkTachyonPi",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
 
     val slices = if (args.length > 1) args(1).toInt else 2

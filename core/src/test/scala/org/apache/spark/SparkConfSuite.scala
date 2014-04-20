@@ -86,29 +86,29 @@ class SparkConfSuite extends FunSuite with LocalSparkContext {
 
   test("creating SparkContext without master and app name") {
     val conf = new SparkConf(false)
-    intercept[SparkException] { sc = new SparkContext(conf) }
+    intercept[SparkException] { sc = new SparkContextImpl(conf) }
   }
 
   test("creating SparkContext without master") {
     val conf = new SparkConf(false).setAppName("My app")
-    intercept[SparkException] { sc = new SparkContext(conf) }
+    intercept[SparkException] { sc = new SparkContextImpl(conf) }
   }
 
   test("creating SparkContext without app name") {
     val conf = new SparkConf(false).setMaster("local")
-    intercept[SparkException] { sc = new SparkContext(conf) }
+    intercept[SparkException] { sc = new SparkContextImpl(conf) }
   }
 
   test("creating SparkContext with both master and app name") {
     val conf = new SparkConf(false).setMaster("local").setAppName("My app")
-    sc = new SparkContext(conf)
+    sc = new SparkContextImpl(conf)
     assert(sc.master === "local")
     assert(sc.appName === "My app")
   }
 
   test("SparkContext property overriding") {
     val conf = new SparkConf(false).setMaster("local").setAppName("My app")
-    sc = new SparkContext("local[2]", "My other app", conf)
+    sc = new SparkContextImpl("local[2]", "My other app", conf)
     assert(sc.master === "local[2]")
     assert(sc.appName === "My other app")
   }

@@ -39,7 +39,7 @@ import org.apache.spark.sql.catalyst.util._
 import scala.collection.JavaConversions._
 
 object TestHive
-  extends TestHiveContext(new SparkContext("local", "TestSQLContext", new SparkConf()))
+  extends TestHiveContext(new SparkContextImpl("local", "TestSQLContext", new SparkConf()))
 
 /**
  * A locally running test instance of Spark's Hive execution engine.

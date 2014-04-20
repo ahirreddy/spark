@@ -46,7 +46,7 @@ object SparkTC {
       System.err.println("Usage: SparkTC <master> [<slices>]")
       System.exit(1)
     }
-    val spark = new SparkContext(args(0), "SparkTC",
+    val spark = new SparkContextImpl(args(0), "SparkTC",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
     val slices = if (args.length > 1) args(1).toInt else 2
     var tc = spark.parallelize(generateGraph, slices).cache()

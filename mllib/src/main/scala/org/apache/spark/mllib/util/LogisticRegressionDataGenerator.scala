@@ -76,7 +76,7 @@ object LogisticRegressionDataGenerator {
     val parts: Int = if (args.length > 4) args(4).toInt else 2
     val eps = 3
 
-    val sc = new SparkContext(sparkMaster, "LogisticRegressionDataGenerator")
+    val sc = new SparkContextImpl(sparkMaster, "LogisticRegressionDataGenerator")
     val data = generateLogisticRDD(sc, nexamples, nfeatures, eps, parts)
 
     MLUtils.saveLabeledData(data, outputPath)

@@ -51,7 +51,7 @@ object SparkLR {
       System.err.println("Usage: SparkLR <master> [<slices>]")
       System.exit(1)
     }
-    val sc = new SparkContext(args(0), "SparkLR",
+    val sc = new SparkContextImpl(args(0), "SparkLR",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
     val numSlices = if (args.length > 1) args(1).toInt else 2
     val points = sc.parallelize(generateData, numSlices).cache()

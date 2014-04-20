@@ -45,7 +45,7 @@ object LogQuery {
       System.exit(1)
     }
 
-    val sc = new SparkContext(args(0), "Log Query",
+    val sc = new SparkContextImpl(args(0), "Log Query",
       System.getenv("SPARK_HOME"), SparkContext.jarOfClass(this.getClass))
 
     val dataSet =

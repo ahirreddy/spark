@@ -723,7 +723,7 @@ object ALS {
       .set("spark.kryo.referenceTracking", "false")
       .set("spark.kryoserializer.buffer.mb", "8")
       .set("spark.locality.wait", "10000")
-    val sc = new SparkContext(master, "ALS", conf)
+    val sc = new SparkContextImpl(master, "ALS", conf)
 
     val ratings = sc.textFile(ratingsFile).map { line =>
       val fields = line.split(',')

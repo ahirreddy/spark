@@ -34,7 +34,7 @@ class FlatmapIteratorSuite extends FunSuite with LocalSparkContext {
    */
   test("Flatmap Iterator to Disk") {
     val sconf = new SparkConf().setMaster("local").setAppName("iterator_to_disk_test")
-    sc = new SparkContext(sconf)
+    sc = new SparkContextImpl(sconf)
     val expand_size = 100
     val data = sc.parallelize((1 to 5).toSeq).
       flatMap( x => Stream.range(0, expand_size))
@@ -45,7 +45,7 @@ class FlatmapIteratorSuite extends FunSuite with LocalSparkContext {
 
   test("Flatmap Iterator to Memory") {
     val sconf = new SparkConf().setMaster("local").setAppName("iterator_to_disk_test")
-    sc = new SparkContext(sconf)
+    sc = new SparkContextImpl(sconf)
     val expand_size = 100
     val data = sc.parallelize((1 to 5).toSeq).
       flatMap(x => Stream.range(0, expand_size))
@@ -57,7 +57,7 @@ class FlatmapIteratorSuite extends FunSuite with LocalSparkContext {
   test("Serializer Reset") {
     val sconf = new SparkConf().setMaster("local").setAppName("serializer_reset_test")
       .set("spark.serializer.objectStreamReset", "10")
-    sc = new SparkContext(sconf)
+    sc = new SparkContextImpl(sconf)
     val expand_size = 500
     val data = sc.parallelize(Seq(1,2)).
       flatMap(x => Stream.range(1, expand_size).

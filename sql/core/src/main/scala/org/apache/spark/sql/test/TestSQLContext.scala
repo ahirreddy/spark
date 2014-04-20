@@ -22,4 +22,4 @@ import org.apache.spark.sql.SQLContext
 
 /** A SQLContext that can be used for local testing. */
 object TestSQLContext
-  extends SQLContext(new SparkContext("local", "TestSQLContext", new SparkConf()))
+  extends SQLContext(new SparkContextImpl("local", "TestSQLContext", new SparkConf()))

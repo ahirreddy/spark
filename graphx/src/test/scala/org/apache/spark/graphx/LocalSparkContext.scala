@@ -28,12 +28,12 @@ import org.apache.spark.SparkContext
  * after each test.
 */
 trait LocalSparkContext {
-  /** Runs `f` on a new SparkContext and ensures that it is stopped afterwards. */
+  /** Runs `f` on a new SparkContextImpl and ensures that it is stopped afterwards. */
   def withSpark[T](f: SparkContext => T) = {
     val conf = new SparkConf()
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
-    val sc = new SparkContext("local", "test", conf)
+    val sc = new SparkContextImpl("local", "test", conf)
     try {
       f(sc)
     } finally {

@@ -42,7 +42,7 @@ class ContextCleanerSuite extends FunSuite with BeforeAndAfter with LocalSparkCo
     .set("spark.cleaner.referenceTracking.blocking", "true")
 
   before {
-    sc = new SparkContext(conf)
+    sc = new SparkContextImpl(conf)
   }
 
   after {
@@ -171,7 +171,7 @@ class ContextCleanerSuite extends FunSuite with BeforeAndAfter with LocalSparkCo
       .setMaster("local-cluster[2, 1, 512]")
       .setAppName("ContextCleanerSuite")
       .set("spark.cleaner.referenceTracking.blocking", "true")
-    sc = new SparkContext(conf2)
+    sc = new SparkContextImpl(conf2)
 
     val numRdds = 10
     val numBroadcasts = 4 // Broadcasts are more costly

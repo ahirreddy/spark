@@ -31,7 +31,7 @@ import scala.sys.process._
 import org.json4s._
 import org.json4s.jackson.JsonMethods
 
-import org.apache.spark.{Logging, SparkConf, SparkContext}
+import org.apache.spark.{Logging, SparkConf, SparkContext, SparkContextImpl}
 import org.apache.spark.deploy.master.{RecoveryState, SparkCuratorUtil}
 
 /**
@@ -215,7 +215,7 @@ private[spark] object FaultToleranceTest extends App with Logging {
     // Counter-hack: Because of a hack in SparkEnv#create() that changes this
     // property, we need to reset it.
     System.setProperty("spark.driver.port", "0")
-    sc = new SparkContext(getMasterUrls(masters), "fault-tolerance", containerSparkHome)
+    sc = new SparkContextImpl(getMasterUrls(masters), "fault-tolerance", containerSparkHome)
   }
 
   def getMasterUrls(masters: Seq[TestMasterInfo]): String = {

@@ -44,13 +44,13 @@ class JavaSparkContext(val sc: SparkContext) extends JavaSparkContextVarargsWork
   /**
    * @param conf a [[org.apache.spark.SparkConf]] object specifying Spark parameters
    */
-  def this(conf: SparkConf) = this(new SparkContext(conf))
+  def this(conf: SparkConf) = this(new SparkContextImpl(conf))
 
   /**
    * @param master Cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
    * @param appName A name for your application, to display on the cluster web UI
    */
-  def this(master: String, appName: String) = this(new SparkContext(master, appName))
+  def this(master: String, appName: String) = this(new SparkContextImpl(master, appName))
 
   /**
    * @param master Cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
@@ -68,7 +68,7 @@ class JavaSparkContext(val sc: SparkContext) extends JavaSparkContextVarargsWork
    *                or an HDFS, HTTP, HTTPS, or FTP URL.
    */
   def this(master: String, appName: String, sparkHome: String, jarFile: String) =
-    this(new SparkContext(master, appName, sparkHome, Seq(jarFile)))
+    this(new SparkContextImpl(master, appName, sparkHome, Seq(jarFile)))
 
   /**
    * @param master Cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
@@ -78,7 +78,7 @@ class JavaSparkContext(val sc: SparkContext) extends JavaSparkContextVarargsWork
    *             system or HDFS, HTTP, HTTPS, or FTP URLs.
    */
   def this(master: String, appName: String, sparkHome: String, jars: Array[String]) =
-    this(new SparkContext(master, appName, sparkHome, jars.toSeq))
+    this(new SparkContextImpl(master, appName, sparkHome, jars.toSeq))
 
   /**
    * @param master Cluster URL to connect to (e.g. mesos://host:port, spark://host:port, local[4]).
@@ -90,7 +90,7 @@ class JavaSparkContext(val sc: SparkContext) extends JavaSparkContextVarargsWork
    */
   def this(master: String, appName: String, sparkHome: String, jars: Array[String],
       environment: JMap[String, String]) =
-    this(new SparkContext(master, appName, sparkHome, jars.toSeq, environment, Map()))
+    this(new SparkContextImpl(master, appName, sparkHome, jars.toSeq, environment, Map()))
 
   private[spark] val env = sc.env
 

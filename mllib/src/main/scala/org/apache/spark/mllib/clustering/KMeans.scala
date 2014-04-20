@@ -405,7 +405,7 @@ object KMeans {
     }
     val (master, inputFile, k, iters) = (args(0), args(1), args(2).toInt, args(3).toInt)
     val runs = if (args.length >= 5) args(4).toInt else 1
-    val sc = new SparkContext(master, "KMeans")
+    val sc = new SparkContextImpl(master, "KMeans")
     val data = sc.textFile(inputFile)
       .map(line => Vectors.dense(line.split(' ').map(_.toDouble)))
       .cache()
