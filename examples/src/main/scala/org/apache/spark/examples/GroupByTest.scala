@@ -19,7 +19,7 @@ package org.apache.spark.examples
 
 import java.util.Random
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.SparkContext._
 
 object GroupByTest {

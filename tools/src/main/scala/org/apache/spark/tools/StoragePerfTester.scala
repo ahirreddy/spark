@@ -20,7 +20,7 @@ package org.apache.spark.tools
 import java.util.concurrent.{CountDownLatch, Executors}
 import java.util.concurrent.atomic.AtomicLong
 
-import org.apache.spark.SparkContext
+import org.apache.spark.SparkContextImpl
 import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.util.Utils
 

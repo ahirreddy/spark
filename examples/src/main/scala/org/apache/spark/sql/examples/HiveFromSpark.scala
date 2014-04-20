@@ -17,7 +17,7 @@
 
 package org.apache.spark.sql.hive.examples
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.sql._
 import org.apache.spark.sql.hive.LocalHiveContext
 

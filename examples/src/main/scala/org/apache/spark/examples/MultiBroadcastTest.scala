@@ -18,7 +18,7 @@
 package org.apache.spark.examples
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 
 object MultiBroadcastTest {
   def main(args: Array[String]) {

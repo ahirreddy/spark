@@ -18,7 +18,7 @@
 package org.apache.spark.examples
 
 import org.apache.spark.SparkContext._
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 
 /**
  * Computes the PageRank of URLs from an input file. Input file should

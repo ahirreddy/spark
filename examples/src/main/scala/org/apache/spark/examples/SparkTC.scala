@@ -20,7 +20,7 @@ package org.apache.spark.examples
 import scala.util.Random
 import scala.collection.mutable
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.SparkContext._
 
 /**

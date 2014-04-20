@@ -23,7 +23,7 @@ import scala.util.Random
 import org.jblas.DoubleMatrix
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.rdd.RDD
 
 /**

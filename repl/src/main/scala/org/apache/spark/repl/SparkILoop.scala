@@ -38,7 +38,7 @@ import scala.reflect.api.{Mirror, TypeCreator, Universe => ApiUniverse}
 
 import org.apache.spark.Logging
 import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.util.Utils
 
 /** The Scala interactive shell.  It provides a read-eval-print loop

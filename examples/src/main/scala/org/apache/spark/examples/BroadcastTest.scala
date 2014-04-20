@@ -17,7 +17,7 @@
 
 package org.apache.spark.examples
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 
 object BroadcastTest {
   def main(args: Array[String]) {

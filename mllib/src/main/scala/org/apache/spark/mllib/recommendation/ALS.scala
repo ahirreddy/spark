@@ -27,7 +27,7 @@ import org.jblas.{DoubleMatrix, SimpleBlas, Solve}
 
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.{Logging, HashPartitioner, Partitioner, SparkContext, SparkConf}
+import org.apache.spark.{Logging, HashPartitioner, Partitioner, SparkContextImpl, SparkConf}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.KryoRegistrator

@@ -30,7 +30,7 @@ import org.apache.cassandra.hadoop.cql3.CqlOutputFormat
 import org.apache.cassandra.utils.ByteBufferUtil
 import org.apache.hadoop.mapreduce.Job
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkContext, SparkContextImpl}
 import org.apache.spark.SparkContext._
 
 /*
