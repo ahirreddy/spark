@@ -58,8 +58,269 @@ import org.apache.spark.util.{ClosureCleaner, MetadataCleaner, MetadataCleanerTy
  *   this config overrides the default configs as well as system properties.
  */
 
+trait SparkContext {
+  val config: SparkConf
+
+  private[spark] val conf = config.clone()
+
+  private[spark] val env: SparkEnv
+
+  private[spark] val executorMemory: Int
+
+  val hadoopConfiguration: Configuration
+
+  def getConf: SparkConf
+
+  def initLocalProperties
+
+  def setLocalProperty(key: String, value: String)
+
+  def getLocalProperty(key: String): String
+
+  def setJobDescription(value: String)
+
+  def setJobGroup(groupId: String, description: String)
+
+  def clearJobGroup()
+
+  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int = defaultParallelism): RDD[T]
+
+  def makeRDD[T: ClassTag](seq: Seq[T], numSlices: Int = defaultParallelism): RDD[T]
+
+  def makeRDD[T: ClassTag](seq: Seq[(T, Seq[String])]): RDD[T]
+
+  def textFile(path: String, minPartitions: Int = defaultMinPartitions): RDD[String]
+
+  def wholeTextFiles(path: String, minPartitions: Int = defaultMinPartitions):
+  RDD[(String, String)]
+
+  def hadoopRDD[K, V](
+      conf: JobConf,
+      inputFormatClass: Class[_ <: InputFormat[K, V]],
+      keyClass: Class[K],
+      valueClass: Class[V],
+      minPartitions: Int = defaultMinPartitions
+      ): RDD[(K, V)]
+
+  def hadoopFile[K, V](
+      path: String,
+      inputFormatClass: Class[_ <: InputFormat[K, V]],
+      keyClass: Class[K],
+      valueClass: Class[V],
+      minPartitions: Int = defaultMinPartitions
+      ): RDD[(K, V)]
+
+  def hadoopFile[K, V, F <: InputFormat[K, V]]
+      (path: String, minPartitions: Int)
+      (implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F]): RDD[(K, V)]
+
+  def hadoopFile[K, V, F <: InputFormat[K, V]](path: String)
+      (implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F]): RDD[(K, V)]
+
+  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]]
+      (path: String)
+      (implicit km: ClassTag[K], vm: ClassTag[V], fm: ClassTag[F]): RDD[(K, V)]
+
+  def newAPIHadoopFile[K, V, F <: NewInputFormat[K, V]](
+      path: String,
+      fClass: Class[F],
+      kClass: Class[K],
+      vClass: Class[V],
+      conf: Configuration = hadoopConfiguration): RDD[(K, V)]
+
+  def newAPIHadoopRDD[K, V, F <: NewInputFormat[K, V]](
+      conf: Configuration = hadoopConfiguration,
+      fClass: Class[F],
+      kClass: Class[K],
+      vClass: Class[V]): RDD[(K, V)]
+
+  def sequenceFile[K, V](path: String,
+      keyClass: Class[K],
+      valueClass: Class[V],
+      minPartitions: Int
+      ): RDD[(K, V)]
+
+  def sequenceFile[K, V](path: String, keyClass: Class[K], valueClass: Class[V]
+      ): RDD[(K, V)]
+
+  def sequenceFile[K, V]
+       (path: String, minPartitions: Int = defaultMinPartitions)
+       (implicit km: ClassTag[K], vm: ClassTag[V],
+        kcf: () => WritableConverter[K], vcf: () => WritableConverter[V])
+      : RDD[(K, V)]
+
+  def objectFile[T: ClassTag](
+      path: String,
+      minPartitions: Int = defaultMinPartitions
+      ): RDD[T]
+
+  def union[T: ClassTag](rdds: Seq[RDD[T]]): RDD[T]
+
+  def union[T: ClassTag](first: RDD[T], rest: RDD[T]*): RDD[T]
+
+  def emptyRDD[T: ClassTag]: EmptyRDD[T]
+
+  def accumulator[T](initialValue: T)(implicit param: AccumulatorParam[T]): Accumulator[T]
+
+  def accumulable[T, R](initialValue: T)(implicit param: AccumulableParam[T, R]): Accumulable[T, R]
+
+  def accumulableCollection[R <% Growable[T] with TraversableOnce[T] with Serializable, T]
+      (initialValue: R): Accumulable[R, T]
+
+  def broadcast[T](value: T): Broadcast[T]
+
+  def addFile(path: String)
+
+  def addSparkListener(listener: SparkListener)
+
+  def version: String
+
+  def getExecutorMemoryStatus: Map[String, (Long, Long)]
+
+  def getRDDStorageInfo: Array[RDDInfo]
+
+  def getPersistentRDDs: Map[Int, RDD[_]]
+
+  def getExecutorStorageStatus: Array[StorageStatus]
+
+  def getAllPools: ArrayBuffer[Schedulable]
+
+  def getPoolForName(pool: String): Option[Schedulable]
+
+  def getSchedulingMode: SchedulingMode.SchedulingMode
+
+  def clearFiles()
+
+  def addJar(path: String)
+
+  def clearJars()
+
+  def stop()
+
+  def setCallSite(site: String)
+
+  def clearCallSite()
+
+  def runJob[T, U: ClassTag](
+      rdd: RDD[T],
+      func: (TaskContext, Iterator[T]) => U,
+      partitions: Seq[Int],
+      allowLocal: Boolean,
+      resultHandler: (Int, U) => Unit)
+
+  def runJob[T, U: ClassTag](
+      rdd: RDD[T],
+      func: (TaskContext, Iterator[T]) => U,
+      partitions: Seq[Int],
+      allowLocal: Boolean
+      ): Array[U]
+
+  def runJob[T, U: ClassTag](
+      rdd: RDD[T],
+      func: Iterator[T] => U,
+      partitions: Seq[Int],
+      allowLocal: Boolean
+      ): Array[U]
+
+  def runJob[T, U: ClassTag](rdd: RDD[T], func: (TaskContext, Iterator[T]) => U): Array[U]
+
+  def runJob[T, U: ClassTag](rdd: RDD[T], func: Iterator[T] => U): Array[U]
+
+  def runJob[T, U: ClassTag](
+    rdd: RDD[T],
+    processPartition: (TaskContext, Iterator[T]) => U,
+    resultHandler: (Int, U) => Unit)
+
+  def runJob[T, U: ClassTag](
+      rdd: RDD[T],
+      processPartition: Iterator[T] => U,
+      resultHandler: (Int, U) => Unit)
+
+  def runApproximateJob[T, U, R](
+      rdd: RDD[T],
+      func: (TaskContext, Iterator[T]) => U,
+      evaluator: ApproximateEvaluator[U, R],
+      timeout: Long): PartialResult[R]
+
+  def submitJob[T, U, R](
+      rdd: RDD[T],
+      processPartition: Iterator[T] => U,
+      partitions: Seq[Int],
+      resultHandler: (Int, U) => Unit,
+      resultFunc: => R): SimpleFutureAction[R]
+
+  def cancelJobGroup(groupId: String)
+
+  def cancelAllJobs()
+
+  def setCheckpointDir(directory: String)
+
+  def getCheckpointDir: Option[String]
+
+  def defaultParallelism: Int
+
+  def defaultMinSplits: Int
+
+  def defaultMinPartitions: Int
+
+  private[spark] def persistRDD(rdd: RDD[_])
+
+  private[spark] def unpersistRDD(rddId: Int, blocking: Boolean = true)
+
+  private[spark] def clean[F <: AnyRef](f: F): F
+
+  private[spark] def newRddId(): Int
+
+  private[spark] val cleaner: Option[ContextCleaner]
+
+  private[spark] var checkpointDir: Option[String]
+
+  private[spark] def newShuffleId(): Int
+
+  val master: String
+
+  val appName: String
+
+  val tachyonFolderName: String
+
+  val isLocal: Boolean
+
+  val sparkUser: String
+
+  val jars: Seq[String]
+
+  val startTime: Long
+
+  private[spark] def cancelJob(jobId: Int)
+
+  private[spark] def cancelStage(stageId: Int)
+
+  private[spark] val listenerBus: LiveListenerBus
+
+  private[spark] val persistentRdds: TimeStampedWeakValueHashMap[Int, RDD[_]]
+
+  private[spark] val executorEnvs: HashMap[String, String]
+
+  private[spark] def getSparkHome(): Option[String]
+
+  private[spark] val eventLogger: Option[EventLoggingListener]
+
+  private[spark] val ui: SparkUI
+
+  private [spark] def getPreferredLocs(rdd: RDD[_], partition: Int): Seq[TaskLocation]
+
+  private[spark] var taskScheduler: TaskScheduler
+
+  private[spark] val addedFiles: HashMap[String, Long]
+  private[spark] val addedJars: HashMap[String, Long]
+
+  protected[spark] def checkpointFile[T: ClassTag](
+      path: String
+    ): RDD[T]
+}
+
 @DeveloperApi
-class SparkContext(config: SparkConf) extends Logging {
+class SparkContextImpl(val config: SparkConf) extends SparkContext with Logging {
 
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It
@@ -146,8 +407,6 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   private[spark] def this(master: String, appName: String, sparkHome: String, jars: Seq[String]) =
     this(master, appName, sparkHome, jars, Map(), Map())
-
-  private[spark] val conf = config.clone()
 
   /**
    * Return a copy of this SparkContext's configuration. The configuration ''cannot'' be
@@ -1393,7 +1652,7 @@ object SparkContext extends Logging {
   }
 
   /** Creates a task scheduler based on a given master URL. Extracted for testing. */
-  private def createTaskScheduler(sc: SparkContext, master: String): TaskScheduler = {
+  private[spark] def createTaskScheduler(sc: SparkContext, master: String): TaskScheduler = {
     // Regular expression used for local[N] and local[*] master formats
     val LOCAL_N_REGEX = """local\[([0-9\*]+)\]""".r
     // Regular expression for local[N, maxRetries], used in tests with failing tasks
