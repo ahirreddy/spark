@@ -33,6 +33,10 @@ import akka._
 import akka.pattern.ask
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+
+import org.apache.spark.util.AkkaUtils
+
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, DoubleWritable, FloatWritable, IntWritable, LongWritable, NullWritable, Text, Writable}
@@ -1556,11 +1560,11 @@ case class RunJob[T, U: ClassTag](rdd: RDD[T],
   allowLocal: Boolean,
   resultHandler: (Int, U) => Unit)
 
-class SparkContextServer extends Actor {
-  val conf = new SparkConf().setMaster("local")
-                            .setAppName("Context Server")
+class SparkContextServer(conf: SparkConf, sm: SecurityManager) extends Actor {
 
   val sc = new SparkContext(conf)
+
+  override def preStart = {println("my path is: " + context.self.path)}
 
   def receive = {
     case RunJob(rdd, func, partitions, allowLocal, resultHandler) =>
@@ -1568,12 +1572,58 @@ class SparkContextServer extends Actor {
   }
 }
 
-class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
+object SparkContextServer {
+
+  def start() {
+    val conf = new SparkConf().setMaster("local").setAppName("ContextServer")
+    val sm = new SecurityManager(conf)
+
+    //val (as, port) = AkkaUtils.createActorSystem("server", "localhost", 0, false, conf, sm)
+    val serverSystem = ActorSystem("server", ConfigFactory.load(ConfigFactory.parseString("""
+    akka {
+      actor {
+          provider = "akka.remote.RemoteActorRefProvider"
+
+          default-dispatcher {
+            # Throughput for default Dispatcher, set to 1 for as fair as possible
+            throughput = 10
+          }
+        }
+
+      remote {
+        # The port clients should connect to. Default is 2552.
+        netty.tcp.port = 5678
+      }
+    }
+    """)))
+    serverSystem.actorOf(Props(new SparkContextServer(conf, sm)), name = "server")
+  }
+
+}
+
+class RemoteSparkContext(config: SparkConf, remotePort: Int) extends SparkContext(config) {
 
   implicit val timeout = Timeout(60.seconds)
+  val sm = new SecurityManager(conf)
 
-  val system = ActorSystem("MySystem")
-  val server = system.actorOf(Props[SparkContextServer], name = "SparkContextServer")
+  val clientSystem = ActorSystem("client", ConfigFactory.load(ConfigFactory.parseString("""
+  akka {
+    actor {
+        provider = "akka.remote.RemoteActorRefProvider"
+
+        default-dispatcher {
+          # Throughput for default Dispatcher, set to 1 for as fair as possible
+          throughput = 10
+        }
+      }
+
+    remote {
+      # The port clients should connect to. Default is 2552.
+      netty.tcp.port = 2553
+    }
+  }
+  """)))
+  val server = clientSystem.actorFor("akka.tcp://server@192.168.1.193:5678/user/server")
 
   override def init() {
 
