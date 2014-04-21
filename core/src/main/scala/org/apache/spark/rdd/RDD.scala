@@ -74,7 +74,7 @@ import org.apache.spark.util.random.{BernoulliSampler, PoissonSampler}
  */
 abstract class RDD[T: ClassTag](
     @transient private var sc: SparkContext,
-    @transient private var deps: Seq[Dependency[_]]
+    private var deps: Seq[Dependency[_]]
   ) extends Serializable with Logging {
 
   /** Construct an RDD with just a one-to-one dependency on one parent */
@@ -1094,7 +1094,8 @@ abstract class RDD[T: ClassTag](
 
   /** User code that created this RDD (e.g. `textFile`, `parallelize`). */
   @transient private[spark] val creationSiteInfo = Utils.getCallSiteInfo
-  private[spark] def getCreationSite: String = creationSiteInfo.toString
+  //private[spark] def getCreationSite: String = creationSiteInfo.toString
+  private[spark] def getCreationSite: String = "REMOTE"
 
   private[spark] def elementClassTag: ClassTag[T] = classTag[T]
 

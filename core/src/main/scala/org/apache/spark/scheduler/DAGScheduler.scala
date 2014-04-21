@@ -231,6 +231,7 @@ class DAGScheduler(
       callSite: Option[String] = None)
     : Stage =
   {
+    println("new stage", rdd)
     val id = nextStageId.getAndIncrement()
     val stage =
       new Stage(id, rdd, numTasks, shuffleDep, getParentStages(rdd, jobId), jobId, callSite)
@@ -283,6 +284,8 @@ class DAGScheduler(
         visited += r
         // Kind of ugly: need to register RDDs with the cache here since
         // we can't do it in its constructor because # of partitions is unknown
+        println("visit", r)
+        println("visit", r.dependencies)
         for (dep <- r.dependencies) {
           dep match {
             case shufDep: ShuffleDependency[_,_] =>
@@ -293,6 +296,7 @@ class DAGScheduler(
         }
       }
     }
+    println("getParentStages stage", rdd)
     visit(rdd)
     parents.toList
   }

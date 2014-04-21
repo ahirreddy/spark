@@ -1568,6 +1568,11 @@ class SparkContextServer(conf: SparkConf, sm: SecurityManager) extends Actor {
 
   def receive = {
     case RunJob(rdd, func, partitions, allowLocal, resultHandler) =>
+      println("REMOTE", rdd)
+      println("REMOTE", rdd)
+      println("REMOTE", rdd)
+      println("REMOTE", rdd)
+      println("REMOTE", rdd)
       sender ! sc.runJob(rdd, func, partitions, allowLocal, resultHandler)
   }
 }
@@ -1641,6 +1646,12 @@ class RemoteSparkContext(config: SparkConf, remotePort: Int) extends SparkContex
       partitions: Seq[Int],
       allowLocal: Boolean,
       resultHandler: (Int, U) => Unit) {
+    println(rdd)
+    println(rdd)
+    println(rdd)
+    println(rdd)
+    println(rdd)
+    println(rdd)
     val result = server ? RunJob(rdd, func, partitions, allowLocal, resultHandler)
     Await.result(result, timeout.duration)
   }
