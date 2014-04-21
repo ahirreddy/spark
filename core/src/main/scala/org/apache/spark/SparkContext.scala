@@ -1544,6 +1544,18 @@ object SparkContext extends Logging {
   }
 }
 
+class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
+  override def init() {
+
+  }
+
+  override lazy val master = "RemoteContext"
+
+  override lazy val appName = "RemoteContext"
+
+  override def defaultParallelism: Int = 2
+}
+
 /**
  * A class encapsulating how to convert some type T to Writable. It stores both the Writable class
  * corresponding to T (e.g. IntWritable for Int) and a function for doing the conversion.
