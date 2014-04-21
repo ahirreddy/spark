@@ -122,8 +122,6 @@ class SparkContext(config: SparkConf) extends Logging {
     initDriverMetrics()
   }
 
-  init()
-
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It
   // contains a map from hostname to a list of input format splits on the host.
@@ -210,7 +208,7 @@ class SparkContext(config: SparkConf) extends Logging {
   private[spark] def this(master: String, appName: String, sparkHome: String, jars: Seq[String]) =
     this(master, appName, sparkHome, jars, Map(), Map())
 
-  private[spark] val conf = config.clone()
+  private[spark] lazy val conf = config.clone()
 
   /**
    * Return a copy of this SparkContext's configuration. The configuration ''cannot'' be
@@ -283,7 +281,7 @@ class SparkContext(config: SparkConf) extends Logging {
     .getOrElse(512)
 
   // Environment variables to pass to our executors
-  private[spark] val executorEnvs = HashMap[String, String]()
+  private[spark] lazy val executorEnvs = HashMap[String, String]()
   for (key <- Seq("SPARK_CLASSPATH", "SPARK_LIBRARY_PATH", "SPARK_JAVA_OPTS");
       value <- Option(System.getenv(key))) {
     executorEnvs(key) = value
@@ -1239,6 +1237,8 @@ class SparkContext(config: SparkConf) extends Logging {
   private[spark] def cleanup(cleanupTime: Long) {
     persistentRdds.clearOldValues(cleanupTime)
   }
+
+  init()
 }
 
 /**
