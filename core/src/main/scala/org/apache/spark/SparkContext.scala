@@ -27,6 +27,8 @@ import scala.collection.generic.Growable
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.language.implicitConversions
 import scala.reflect.{ClassTag, classTag}
+import akka._
+import akka.actor.{Actor, ActorSystem, Props}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, DoubleWritable, FloatWritable, IntWritable, LongWritable, NullWritable, Text, Writable}
@@ -1544,7 +1546,24 @@ object SparkContext extends Logging {
   }
 }
 
+case class RunJob(msg: String)
+
+class SparkContextServer extends Actor {
+  val conf = new SparkConf().setMaster("local")
+                            .setAppName("Context Server")
+
+  val sc = new SparkContext(conf)
+
+  def receive = {
+    case RunJob(msg) => println(msg)
+  }
+}
+
 class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
+
+  val system = ActorSystem("MySystem")
+  val server = system.actorOf(Props[SparkContextServer], name = "SparkContextServer")
+
   override def init() {
 
   }
@@ -1554,6 +1573,11 @@ class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
   override lazy val appName = "RemoteContext"
 
   override def defaultParallelism: Int = 2
+
+  def test() {
+    server ! RunJob("job")
+  }
+
 }
 
 /**
