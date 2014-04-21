@@ -27,8 +27,12 @@ import scala.collection.generic.Growable
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.language.implicitConversions
 import scala.reflect.{ClassTag, classTag}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import akka._
+import akka.pattern.ask
 import akka.actor.{Actor, ActorSystem, Props}
+import akka.util.Timeout
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, DoubleWritable, FloatWritable, IntWritable, LongWritable, NullWritable, Text, Writable}
@@ -1546,7 +1550,11 @@ object SparkContext extends Logging {
   }
 }
 
-case class RunJob(msg: String)
+case class RunJob[T, U: ClassTag](rdd: RDD[T],
+  func: (TaskContext, Iterator[T]) => U,
+  partitions: Seq[Int],
+  allowLocal: Boolean,
+  resultHandler: (Int, U) => Unit)
 
 class SparkContextServer extends Actor {
   val conf = new SparkConf().setMaster("local")
@@ -1555,11 +1563,14 @@ class SparkContextServer extends Actor {
   val sc = new SparkContext(conf)
 
   def receive = {
-    case RunJob(msg) => println(msg)
+    case RunJob(rdd, func, partitions, allowLocal, resultHandler) =>
+      sender ! sc.runJob(rdd, func, partitions, allowLocal, resultHandler)
   }
 }
 
 class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
+
+  implicit val timeout = Timeout(60.seconds)
 
   val system = ActorSystem("MySystem")
   val server = system.actorOf(Props[SparkContextServer], name = "SparkContextServer")
@@ -1574,8 +1585,14 @@ class RemoteSparkContext(config: SparkConf) extends SparkContext(config) {
 
   override def defaultParallelism: Int = 2
 
-  def test() {
-    server ! RunJob("job")
+  override def runJob[T, U: ClassTag](
+      rdd: RDD[T],
+      func: (TaskContext, Iterator[T]) => U,
+      partitions: Seq[Int],
+      allowLocal: Boolean,
+      resultHandler: (Int, U) => Unit) {
+    val result = server ? RunJob(rdd, func, partitions, allowLocal, resultHandler)
+    Await.result(result, timeout.duration)
   }
 
 }
