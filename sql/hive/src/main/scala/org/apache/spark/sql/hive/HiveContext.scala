@@ -22,7 +22,7 @@ import java.util.{ArrayList => JArrayList}
 
 import scala.collection.JavaConversions._
 import scala.language.implicitConversions
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.ql.Driver
@@ -33,7 +33,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.catalyst.analysis.{Analyzer, OverrideCatalog}
+import org.apache.spark.sql.catalyst.analysis.{OverrideFunctionRegistry, Analyzer, OverrideCatalog}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUdf}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.types._
 import org.apache.spark.sql.execution.QueryExecutionException
@@ -63,7 +64,7 @@ class LocalHiveContext(sc: SparkContext) extends HiveContext(sc) {
  * An instance of the Spark SQL execution engine that integrates with data stored in Hive.
  * Configuration for Hive is read from hive-site.xml on the classpath.
  */
-class HiveContext(sc: SparkContext) extends SQLContext(sc) {
+class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
   self =>
 
   override protected[sql] def executePlan(plan: LogicalPlan): this.QueryExecution =
@@ -150,10 +151,12 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) {
     }
   }
 
+  protected[sql] val functionRegistry = new HiveFunctionRegistry with OverrideFunctionRegistry
+
   /* An analyzer that uses the Hive metastore. */
   @transient
   override protected[sql] lazy val analyzer =
-    new Analyzer(catalog, HiveFunctionRegistry, caseSensitive = false)
+    new Analyzer(catalog, functionRegistry, caseSensitive = false)
 
   /**
    * Runs the specified SQL query using Hive.
@@ -245,7 +248,7 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) {
   protected[sql] abstract class QueryExecution extends super.QueryExecution {
     // TODO: Create mixin for the analyzer instead of overriding things here.
     override lazy val optimizedPlan =
-      optimizer(catalog.PreInsertionCasts(catalog.CreateTables(analyzed)))
+      optimizer(ExtractPythonUdfs(catalog.PreInsertionCasts(catalog.CreateTables(analyzed))))
 
     override lazy val toRdd: RDD[Row] = executedPlan.execute().map(_.copy())
 

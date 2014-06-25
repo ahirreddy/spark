@@ -38,7 +38,7 @@ import org.apache.spark.sql.catalyst.types._
 /* Implicit conversions */
 import scala.collection.JavaConversions._
 
-private[hive] object HiveFunctionRegistry
+private[hive] class HiveFunctionRegistry
   extends analysis.FunctionRegistry with HiveFunctionFactory with HiveInspectors {
 
   def lookupFunction(name: String, children: Seq[Expression]): Expression = {
@@ -68,47 +68,6 @@ private[hive] object HiveFunctionRegistry
     } else {
       sys.error(s"No handler for udf ${functionInfo.getFunctionClass}")
     }
-  }
-
-  def javaClassToDataType(clz: Class[_]): DataType = clz match {
-    // writable
-    case c: Class[_] if c == classOf[hadoopIo.DoubleWritable] => DoubleType
-    case c: Class[_] if c == classOf[hiveIo.DoubleWritable] => DoubleType
-    case c: Class[_] if c == classOf[hiveIo.HiveDecimalWritable] => DecimalType
-    case c: Class[_] if c == classOf[hiveIo.ByteWritable] => ByteType
-    case c: Class[_] if c == classOf[hiveIo.ShortWritable] => ShortType
-    case c: Class[_] if c == classOf[hiveIo.TimestampWritable] => TimestampType
-    case c: Class[_] if c == classOf[hadoopIo.Text] => StringType
-    case c: Class[_] if c == classOf[hadoopIo.IntWritable] => IntegerType
-    case c: Class[_] if c == classOf[hadoopIo.LongWritable] => LongType
-    case c: Class[_] if c == classOf[hadoopIo.FloatWritable] => FloatType
-    case c: Class[_] if c == classOf[hadoopIo.BooleanWritable] => BooleanType
-    case c: Class[_] if c == classOf[hadoopIo.BytesWritable] => BinaryType
-    
-    // java class
-    case c: Class[_] if c == classOf[java.lang.String] => StringType
-    case c: Class[_] if c == classOf[java.sql.Timestamp] => TimestampType
-    case c: Class[_] if c == classOf[HiveDecimal] => DecimalType
-    case c: Class[_] if c == classOf[java.math.BigDecimal] => DecimalType
-    case c: Class[_] if c == classOf[Array[Byte]] => BinaryType
-    case c: Class[_] if c == classOf[java.lang.Short] => ShortType
-    case c: Class[_] if c == classOf[java.lang.Integer] => IntegerType
-    case c: Class[_] if c == classOf[java.lang.Long] => LongType
-    case c: Class[_] if c == classOf[java.lang.Double] => DoubleType
-    case c: Class[_] if c == classOf[java.lang.Byte] => ByteType
-    case c: Class[_] if c == classOf[java.lang.Float] => FloatType
-    case c: Class[_] if c == classOf[java.lang.Boolean] => BooleanType
-    
-    // primitive type
-    case c: Class[_] if c == java.lang.Short.TYPE => ShortType
-    case c: Class[_] if c == java.lang.Integer.TYPE => IntegerType
-    case c: Class[_] if c == java.lang.Long.TYPE => LongType
-    case c: Class[_] if c == java.lang.Double.TYPE => DoubleType
-    case c: Class[_] if c == java.lang.Byte.TYPE => ByteType
-    case c: Class[_] if c == java.lang.Float.TYPE => FloatType
-    case c: Class[_] if c == java.lang.Boolean.TYPE => BooleanType
-    
-    case c: Class[_] if c.isArray => ArrayType(javaClassToDataType(c.getComponentType))
   }
 }
 
@@ -154,7 +113,8 @@ private[hive] trait HiveFunctionFactory {
   }
 }
 
-private[hive] abstract class HiveUdf extends Expression with Logging with HiveFunctionFactory {
+private[hive] abstract class HiveUdf extends Expression
+  with Logging with HiveFunctionFactory with HiveInspectors {
   self: Product =>
 
   type UDFType
@@ -173,7 +133,6 @@ private[hive] abstract class HiveUdf extends Expression with Logging with HiveFu
 }
 
 private[hive] case class HiveSimpleUdf(name: String, children: Seq[Expression]) extends HiveUdf {
-  import org.apache.spark.sql.hive.HiveFunctionRegistry._
   type UDFType = UDF
 
   @transient
@@ -278,6 +237,46 @@ private[hive] case class HiveGenericUdf(name: String, children: Seq[Expression])
 }
 
 private[hive] trait HiveInspectors {
+  def javaClassToDataType(clz: Class[_]): DataType = clz match {
+    // writable
+    case c: Class[_] if c == classOf[hadoopIo.DoubleWritable] => DoubleType
+    case c: Class[_] if c == classOf[hiveIo.DoubleWritable] => DoubleType
+    case c: Class[_] if c == classOf[hiveIo.HiveDecimalWritable] => DecimalType
+    case c: Class[_] if c == classOf[hiveIo.ByteWritable] => ByteType
+    case c: Class[_] if c == classOf[hiveIo.ShortWritable] => ShortType
+    case c: Class[_] if c == classOf[hiveIo.TimestampWritable] => TimestampType
+    case c: Class[_] if c == classOf[hadoopIo.Text] => StringType
+    case c: Class[_] if c == classOf[hadoopIo.IntWritable] => IntegerType
+    case c: Class[_] if c == classOf[hadoopIo.LongWritable] => LongType
+    case c: Class[_] if c == classOf[hadoopIo.FloatWritable] => FloatType
+    case c: Class[_] if c == classOf[hadoopIo.BooleanWritable] => BooleanType
+    case c: Class[_] if c == classOf[hadoopIo.BytesWritable] => BinaryType
+
+    // java class
+    case c: Class[_] if c == classOf[java.lang.String] => StringType
+    case c: Class[_] if c == classOf[java.sql.Timestamp] => TimestampType
+    case c: Class[_] if c == classOf[HiveDecimal] => DecimalType
+    case c: Class[_] if c == classOf[java.math.BigDecimal] => DecimalType
+    case c: Class[_] if c == classOf[Array[Byte]] => BinaryType
+    case c: Class[_] if c == classOf[java.lang.Short] => ShortType
+    case c: Class[_] if c == classOf[java.lang.Integer] => IntegerType
+    case c: Class[_] if c == classOf[java.lang.Long] => LongType
+    case c: Class[_] if c == classOf[java.lang.Double] => DoubleType
+    case c: Class[_] if c == classOf[java.lang.Byte] => ByteType
+    case c: Class[_] if c == classOf[java.lang.Float] => FloatType
+    case c: Class[_] if c == classOf[java.lang.Boolean] => BooleanType
+
+    // primitive type
+    case c: Class[_] if c == java.lang.Short.TYPE => ShortType
+    case c: Class[_] if c == java.lang.Integer.TYPE => IntegerType
+    case c: Class[_] if c == java.lang.Long.TYPE => LongType
+    case c: Class[_] if c == java.lang.Double.TYPE => DoubleType
+    case c: Class[_] if c == java.lang.Byte.TYPE => ByteType
+    case c: Class[_] if c == java.lang.Float.TYPE => FloatType
+    case c: Class[_] if c == java.lang.Boolean.TYPE => BooleanType
+
+    case c: Class[_] if c.isArray => ArrayType(javaClassToDataType(c.getComponentType))
+  }
 
   def unwrapData(data: Any, oi: ObjectInspector): Any = oi match {
     case pi: PrimitiveObjectInspector => pi.getPrimitiveJavaObject(data)
