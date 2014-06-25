@@ -38,8 +38,7 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
 
 /**
- * A serialized version of a Python lambda function.  Suitable for use in a [[PythonRDD]]. Currently
- * PythonUDFs always return StringType.
+ * A serialized version of a Python lambda function.  Suitable for use in a [[PythonRDD]].
  */
 private[spark] case class PythonUDF(
     name: String,
@@ -90,7 +89,10 @@ private[spark] case class PythonUDF(
     }.mapPartitions { iter =>
       val row = new GenericMutableRow(1)
       iter.map { result =>
-        row(0) = result.toString
+        row(0) = dataType match {
+          case StringType => result.toString
+          case other => result
+        }
         log.debug(s"resultRow: $row")
         row: Row
       }

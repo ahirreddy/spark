@@ -28,6 +28,11 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUdf}
 
 
+/**
+ * Functions for registering UDFs.
+ *
+ * TODO: Move to SQL.
+ */
 protected[sql] trait UdfRegistration {
   self: HiveContext =>
 
@@ -37,8 +42,9 @@ protected[sql] trait UdfRegistration {
       envVars: JMap[String, String],
       pythonIncludes: JList[String],
       pythonExec: String,
-      accumulator: Accumulator[JList[Array[Byte]]]): Unit = {
-    logger.debug(
+      accumulator: Accumulator[JList[Array[Byte]]],
+      dataType: String): Unit = {
+    println(
       s"""
         | Registering new PythonUDF:
         | name: $name
@@ -48,8 +54,16 @@ protected[sql] trait UdfRegistration {
         | pythonExec: $pythonExec
       """.stripMargin)
 
+
     def builder(e: Seq[Expression]) =
-      PythonUDF(name, command, envVars, pythonIncludes, pythonExec, accumulator, StringType, e)
+      PythonUDF(name,
+        command,
+        envVars,
+        pythonIncludes,
+        pythonExec,
+        accumulator,
+        HiveMetastoreTypes.toDataType(dataType),
+        e)
 
     functionRegistry.registerFunction(name, builder)
   }
