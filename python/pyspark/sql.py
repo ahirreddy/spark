@@ -77,7 +77,7 @@ class SQLContext:
             self._scala_SQLContext = self._jvm.SQLContext(self._jsc.sc())
         return self._scala_SQLContext
 
-    def registerFunction(self, name, f, returnType = "string"):
+    def registerFunction(self, name, f, returnType = "int"):
         def func(split, iterator): return imap(f, iterator)
         command = (func, self._sc.serializer, self._sc.serializer)
         env = MapConverter().convert(self._sc.environment,
