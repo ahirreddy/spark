@@ -196,7 +196,10 @@ class ParquetQuerySuite extends QueryTest with FunSuiteLike with BeforeAndAfterA
       path,
       TestSQLContext.sparkContext.hadoopConfiguration)
     assert(fs.exists(new Path(path, ParquetFileWriter.PARQUET_METADATA_FILE)))
-    val metaData = ParquetTypesConverter.readMetaData(path, Some(ContextUtil.getConfiguration(job)))
+    val metaData = ParquetTypesConverter
+      .readFooters(path, Some(ContextUtil.getConfiguration(job)))
+      .get(0)
+      .getParquetMetadata
     assert(metaData != null)
     ParquetTestData
       .testData

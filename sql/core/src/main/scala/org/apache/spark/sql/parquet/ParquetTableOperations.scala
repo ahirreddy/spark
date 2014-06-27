@@ -19,22 +19,28 @@ package org.apache.spark.sql.parquet
 
 import java.io.IOException
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, List => JList}
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileStatus, Path}
+import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat => NewFileOutputFormat, FileOutputCommitter}
-
-import parquet.hadoop.{ParquetRecordReader, ParquetInputFormat, ParquetOutputFormat}
+import org.apache.hadoop.mapreduce.lib.output.{FileOutputCommitter, FileOutputFormat => NewFileOutputFormat}
+import parquet.hadoop._
 import parquet.hadoop.api.ReadSupport
 import parquet.hadoop.util.ContextUtil
 import parquet.io.InvalidRecordException
 import parquet.schema.MessageType
+import parquet.hadoop.api.InitContext;
+import parquet.hadoop.metadata.GlobalMetaData;
 
-import org.apache.spark.{Logging, SerializableWritable, SparkContext, TaskContext}
-import org.apache.spark.rdd.RDD
+import scala.collection.JavaConversions._
+
+
+import org.apache.spark._
+import org.apache.spark.rdd.{NewHadoopPartition, NewHadoopRDD, RDD}
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression, Row}
 import org.apache.spark.sql.catalyst.types.StructType
 import org.apache.spark.sql.execution.{LeafNode, SparkPlan, UnaryNode}
@@ -84,13 +90,7 @@ case class ParquetTableScan(
       ParquetFilters.serializeFilterExpressions(columnPruningPred, conf)
     }
 
-    sc.newAPIHadoopRDD(
-      conf,
-      classOf[org.apache.spark.sql.parquet.FilteringParquetRowInputFormat],
-      classOf[Void],
-      classOf[Row])
-      .map(_._2)
-      .filter(_ != null) // Parquet's record filters may produce null values
+    new ParquetRDD(sc, conf, output, relation).map(_._2).filter(_ != null)
   }
 
   override def otherCopyArgs = sc :: Nil
@@ -125,9 +125,8 @@ case class ParquetTableScan(
       original.checkContains(candidate)
       true
     } catch {
-      case e: InvalidRecordException => {
+      case e: InvalidRecordException =>
         false
-      }
     }
   }
 }
@@ -259,7 +258,7 @@ case class InsertIntoParquetTable(
       }
       writer.close(hadoopContext)
       committer.commitTask(hadoopContext)
-      return 1
+      1
     }
     val jobFormat = new AppendingParquetOutputFormat(taskIdOffset)
     /* apparently we need a TaskAttemptID to construct an OutputCommitter;
@@ -295,12 +294,22 @@ private[parquet] class AppendingParquetOutputFormat(offset: Int)
   }
 }
 
+object GlobalCache {
+  var status = new scala.collection.mutable.HashMap[Seq[Path], JList[FileStatus]]()
+}
+
 /**
  * We extend ParquetInputFormat in order to have more control over which
  * RecordFilter we want to use.
  */
 private[parquet] class FilteringParquetRowInputFormat
   extends parquet.hadoop.ParquetInputFormat[Row] with Logging {
+
+  override def listStatus(jobContext: JobContext): JList[FileStatus] = {
+    val paths = NewFileInputFormat.getInputPaths(jobContext).toSeq
+    GlobalCache.status.getOrElseUpdate(paths, super.listStatus(jobContext))
+  }
+
   override def createRecordReader(
       inputSplit: InputSplit,
       taskAttemptContext: TaskAttemptContext): RecordReader[Void, Row] = {
@@ -316,6 +325,49 @@ private[parquet] class FilteringParquetRowInputFormat
     } else {
       new ParquetRecordReader[Row](readSupport)
     }
+  }
+
+  override def getSplits(configuration: Configuration, footers: JList[Footer]): JList[ParquetInputSplit] = {
+    val maxSplitSize = configuration.getLong("mapred.max.split.size", java.lang.Long.MAX_VALUE);
+    val minSplitSize = Math.max(getFormatMinSplitSize(), configuration.getLong("mapred.min.split.size", 0L));
+    if (maxSplitSize < 0 || minSplitSize < 0) {
+      sys.error("maxSplitSize or minSplitSie should not be negative: maxSplitSize = " + maxSplitSize + "; minSplitSize = " + minSplitSize);
+    }
+    val splits = new java.util.ArrayList[ParquetInputSplit]();
+    val clz = classOf[ParquetFileWriter]
+    val method = clz.getDeclaredMethods.filter(_.getName == "getGlobalMetaData").head
+    method.setAccessible(true)
+    val globalMetaData =  method.invoke(clz, footers).asInstanceOf[GlobalMetaData]
+
+    val readContext = getReadSupport(configuration).init(new InitContext(
+      configuration,
+      globalMetaData.getKeyValueMetaData(),
+      globalMetaData.getSchema()));
+    footers.par.foreach { footer =>
+      val file = footer.getFile();
+      val fs = file.getFileSystem(configuration);
+      val fileStatus = fs.getFileStatus(file);
+      val parquetMetaData = footer.getParquetMetadata();
+      val blocks = parquetMetaData.getBlocks();
+      val fileBlockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+      val clz = classOf[ParquetInputFormat[_]]
+      val method = clz.getDeclaredMethods.find(_.getName == "generateSplits").head
+      method.setAccessible(true)
+      splits.synchronized {
+      splits.addAll(
+        method.invoke(
+          clz,
+          blocks,
+          fileBlockLocations,
+          fileStatus,
+          parquetMetaData.getFileMetaData(),
+          readContext.getRequestedSchema().toString(),
+          readContext.getReadSupportMetadata(),
+          minSplitSize: java.lang.Long,
+          maxSplitSize: java.lang.Long).asInstanceOf[java.util.Collection[_ <: parquet.hadoop.ParquetInputSplit]]
+      );                   }
+    }
+    return splits;
   }
 }
 
@@ -346,12 +398,39 @@ private[parquet] object FileSystemHelper {
     files.map(_.getName).map {
       case nameP(taskid) => taskid.toInt
       case hiddenFileP() => 0
-      case other: String => {
+      case other: String =>
         sys.error("ERROR: attempting to append to set of Parquet files and found file" +
           s"that does not match name pattern: $other")
         0
-      }
       case _ => 0
     }.reduceLeft((a, b) => if (a < b) b else a)
+  }
+}
+
+private[parquet] class ParquetRDD(
+    @transient sc: SparkContext,
+    @transient conf: Configuration,
+    @transient output: Seq[Attribute],
+    @transient relation: ParquetRelation)
+  extends NewHadoopRDD[Void, Row](
+    sc,
+    classOf[FilteringParquetRowInputFormat],
+    classOf[Void],
+    classOf[Row],
+    conf) {
+
+
+
+  override def getPartitions = {
+    val inputFormat = new FilteringParquetRowInputFormat
+    val jobContext = newJobContext(conf, jobId)
+    val rawSplits = relation.cachedInputSplitsFrom(output) {
+      println("not cached")
+      inputFormat.getSplits(ContextUtil.getConfiguration(jobContext), relation.footers)
+    }
+
+    Array.tabulate(rawSplits.size()) { index =>
+      new NewHadoopPartition(id, index, rawSplits.get(index): InputSplit with Writable)
+    }
   }
 }

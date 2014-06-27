@@ -17,7 +17,10 @@
 
 package org.apache.spark.sql.parquet
 
+import scala.util.Try
+
 import java.io.IOException
+import java.util.{List => JList}
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -309,8 +312,10 @@ private[parquet] object ParquetTypesConverter extends Logging {
         s"Unable to write Parquet metadata: path $origPath is incorrectly formatted")
     }
     val path = origPath.makeQualified(fs)
-    if (fs.exists(path) && !fs.getFileStatus(path).isDir) {
-      throw new IllegalArgumentException(s"Expected to write to directory $path but found file")
+    Try(fs.getFileStatus(path)).map { status =>
+      if (status.isDir) {
+        throw new IllegalArgumentException(s"Expected to write to directory $path but found file")
+      }
     }
     val metadataPath = new Path(path, ParquetFileWriter.PARQUET_METADATA_FILE)
     if (fs.exists(metadataPath)) {
@@ -349,7 +354,7 @@ private[parquet] object ParquetTypesConverter extends Logging {
    * @param configuration The Hadoop configuration to use.
    * @return The `ParquetMetadata` containing among other things the schema.
    */
-  def readMetaData(origPath: Path, configuration: Option[Configuration]): ParquetMetadata = {
+  def readFooters(origPath: Path, configuration: Option[Configuration]): JList[Footer] = {
     if (origPath == null) {
       throw new IllegalArgumentException("Unable to read Parquet metadata: path is null")
     }
@@ -360,49 +365,19 @@ private[parquet] object ParquetTypesConverter extends Logging {
       throw new IllegalArgumentException(s"Incorrectly formatted Parquet metadata path $origPath")
     }
     val path = origPath.makeQualified(fs)
-    if (!fs.getFileStatus(path).isDir) {
+    val pathStatus = fs.getFileStatus(path)
+    if (!pathStatus.isDir) {
       throw new IllegalArgumentException(
         s"Expected $path for be a directory with Parquet files/metadata")
     }
     ParquetRelation.enableLogForwarding()
-    val metadataPath = new Path(path, ParquetFileWriter.PARQUET_METADATA_FILE)
-    // if this is a new table that was just created we will find only the metadata file
-    if (fs.exists(metadataPath) && fs.isFile(metadataPath)) {
-      ParquetFileReader.readFooter(conf, metadataPath)
-    } else {
-      // there may be one or more Parquet files in the given directory
-      val footers = ParquetFileReader.readFooters(conf, fs.getFileStatus(path))
-      // TODO: for now we assume that all footers (if there is more than one) have identical
-      // metadata; we may want to add a check here at some point
-      if (footers.size() == 0) {
-        throw new IllegalArgumentException(s"Could not find Parquet metadata at path $path")
-      }
-      footers(0).getParquetMetadata
+    // there may be one or more Parquet files in the given directory
+    val footers = ParquetFileReader.readFooters(conf, pathStatus)
+    // TODO: for now we assume that all footers (if there is more than one) have identical
+    // metadata; we may want to add a check here at some point
+    if (footers.size() == 0) {
+      throw new IllegalArgumentException(s"Could not find Parquet metadata at path $path")
     }
-  }
-
-  /**
-   * Reads in Parquet Metadata from the given path and tries to extract the schema
-   * (Catalyst attributes) from the application-specific key-value map. If this
-   * is empty it falls back to converting from the Parquet file schema which
-   * may lead to an upcast of types (e.g., {byte, short} to int).
-   *
-   * @param origPath The path at which we expect one (or more) Parquet files.
-   * @param conf The Hadoop configuration to use.
-   * @return A list of attributes that make up the schema.
-   */
-  def readSchemaFromFile(origPath: Path, conf: Option[Configuration]): Seq[Attribute] = {
-    val keyValueMetadata: java.util.Map[String, String] =
-      readMetaData(origPath, conf)
-        .getFileMetaData
-        .getKeyValueMetaData
-    if (keyValueMetadata.get(RowReadSupport.SPARK_METADATA_KEY) != null) {
-      convertFromString(keyValueMetadata.get(RowReadSupport.SPARK_METADATA_KEY))
-    } else {
-      val attributes = convertToAttributes(
-        readMetaData(origPath, conf).getFileMetaData.getSchema)
-      log.warn(s"Falling back to schema conversion from Parquet types; result: $attributes")
-      attributes
-    }
+    footers
   }
 }

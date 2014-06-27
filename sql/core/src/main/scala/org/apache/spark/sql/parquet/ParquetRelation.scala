@@ -17,19 +17,22 @@
 
 package org.apache.spark.sql.parquet
 
+import scala.util.Try
+
 import java.io.IOException
+import java.util.{List => JList, Map => JMap}
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.fs.permission.FsAction
-
-import parquet.hadoop.ParquetOutputFormat
 import parquet.hadoop.metadata.CompressionCodecName
+import parquet.hadoop.{ParquetInputSplit, ParquetOutputFormat}
 import parquet.schema.MessageType
 
+import org.apache.spark.Logging
 import org.apache.spark.sql.catalyst.analysis.{MultiInstanceRelation, UnresolvedException}
 import org.apache.spark.sql.catalyst.expressions.Attribute
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, LeafNode}
+import org.apache.spark.sql.catalyst.plans.logical.{LeafNode, LogicalPlan}
 
 /**
  * Relation that consists of data stored in a Parquet columnar format.
@@ -44,27 +47,63 @@ import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, LeafNode}
  * @param path The path to the Parquet file.
  */
 private[sql] case class ParquetRelation(
-    val path: String,
-    @transient val conf: Option[Configuration] = None) extends LeafNode with MultiInstanceRelation {
+    path: String,
+    @transient conf: Option[Configuration] = None)
+  extends LeafNode with MultiInstanceRelation with Logging {
+
   self: Product =>
 
+  @transient lazy val footers = ParquetTypesConverter.readFooters(new Path(path), conf)
+
+  @transient private lazy val parquetMetadata = footers.get(0).getParquetMetadata
+
+  @transient private var cachedInputSplits = new scala.collection.mutable.HashMap[Seq[Attribute],JList[ParquetInputSplit]]()
+
+  private[parquet] def cachedInputSplitsFrom(output: Seq[Attribute])(f: => JList[ParquetInputSplit]) = {
+    cachedInputSplits.getOrElseUpdate(output, f)
+  }
+
   /** Schema derived from ParquetFile */
-  def parquetSchema: MessageType =
-    ParquetTypesConverter
-      .readMetaData(new Path(path), conf)
-      .getFileMetaData
-      .getSchema
+  def parquetSchema: MessageType = parquetMetadata.getFileMetaData.getSchema
 
   /** Attributes */
-  override val output = ParquetTypesConverter.readSchemaFromFile(new Path(path), conf)
+  lazy val output = readSchemaFromFile(new Path(path), conf)
+
+  /**
+   * Reads in Parquet Metadata from the given path and tries to extract the schema
+   * (Catalyst attributes) from the application-specific key-value map. If this
+   * is empty it falls back to converting from the Parquet file schema which
+   * may lead to an upcast of types (e.g., {byte, short} to int).
+   *
+   * @param origPath The path at which we expect one (or more) Parquet files.
+   * @param conf The Hadoop configuration to use.
+   * @return A list of attributes that make up the schema.
+   */
+  private def readSchemaFromFile(origPath: Path, conf: Option[Configuration]): Seq[Attribute] = {
+    val keyValueMetadata: JMap[String, String] = parquetMetadata.getFileMetaData.getKeyValueMetaData
+    if (keyValueMetadata.get(RowReadSupport.SPARK_METADATA_KEY) != null) {
+      ParquetTypesConverter.convertFromString(
+        keyValueMetadata.get(RowReadSupport.SPARK_METADATA_KEY))
+    } else {
+      val attributes =
+        ParquetTypesConverter.convertToAttributes(parquetMetadata.getFileMetaData.getSchema)
+      log.warn(s"Falling back to schema conversion from Parquet types; result: $attributes")
+      attributes
+    }
+  }
 
   override def newInstance = ParquetRelation(path).asInstanceOf[this.type]
 
   // Equals must also take into account the output attributes so that we can distinguish between
   // different instances of the same relation,
   override def equals(other: Any) = other match {
-    case p: ParquetRelation =>
-      p.path == path && p.output == output
+    case ref: AnyRef =>
+      // Avoids computing `output` if comparing with itself
+      (ref eq this) || (ref match {
+        case p: ParquetRelation =>
+          p.path == path && p.output == output
+        case _ => false
+      })
     case _ => false
   }
 }
@@ -132,7 +171,7 @@ private[sql] object ParquetRelation {
     ParquetRelation.enableLogForwarding()
     ParquetTypesConverter.writeMetaData(attributes, path, conf)
     new ParquetRelation(path.toString, Some(conf)) {
-      override val output = attributes
+      override lazy val output = attributes
     }
   }
 
@@ -147,17 +186,15 @@ private[sql] object ParquetRelation {
         s"Unable to create ParquetRelation: incorrectly formatted path $pathStr")
     }
     val path = origPath.makeQualified(fs)
-    if (!allowExisting && fs.exists(path)) {
-      sys.error(s"File $pathStr already exists.")
-    }
+    Try(fs.getFileStatus(path)).map { status =>
+      if (!allowExisting) {
+        sys.error(s"File $pathStr already exists.")
+      }
 
-    if (fs.exists(path) &&
-        !fs.getFileStatus(path)
-        .getPermission
-        .getUserAction
-        .implies(FsAction.READ_WRITE)) {
-      throw new IOException(
-        s"Unable to create ParquetRelation: path $path not read-writable")
+      if (!status.getPermission.getUserAction.implies(FsAction.READ_WRITE)) {
+        throw new IOException(
+          s"Unable to create ParquetRelation: path $path not read-writable")
+      }
     }
     path
   }
