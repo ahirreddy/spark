@@ -341,37 +341,55 @@ private[spark] class TaskSetManager(
   private def findTask(execId: String, host: String, locality: TaskLocality.Value)
     : Option[(Int, TaskLocality.Value)] =
   {
+    logDebug("Finding process local tasks for executor " + execId + " on " + host + " for locality " + locality)
+    logDebug("Tasks for executor: " + getPendingTasksForExecutor(execId))
+    logDebug("Tasks for host: " + getPendingTasksForHost(execId))
+    logDebug("Tasks for rack: " + getPendingTasksForRack(execId))
+    logDebug("Tasks for any pref: " + pendingTasksWithNoPrefs)
+    logDebug("All pending tasks: " + allPendingTasks)
+
+    logDebug("Finding process local tasks for executor " + execId + " on " + host + " for locality " + locality)
     for (index <- findTaskFromList(execId, getPendingTasksForExecutor(execId))) {
+      logDebug("Allocated process local task " + index + " to executor " + execId)
       return Some((index, TaskLocality.PROCESS_LOCAL))
     }
 
     if (TaskLocality.isAllowed(locality, TaskLocality.NODE_LOCAL)) {
+      logDebug("Finding node local tasks for executor " + execId + " on " + host + " for locality " + locality)
       for (index <- findTaskFromList(execId, getPendingTasksForHost(host))) {
+        logDebug("Allocated node local task " + index + " to executor " + execId)
         return Some((index, TaskLocality.NODE_LOCAL))
       }
     }
 
     if (TaskLocality.isAllowed(locality, TaskLocality.RACK_LOCAL)) {
+      logDebug("Finding rack local tasks for executor " + execId + " on " + host + " for locality " + locality)
       for {
         rack <- sched.getRackForHost(host)
         index <- findTaskFromList(execId, getPendingTasksForRack(rack))
       } {
+        logDebug("Allocated rack local task " + index + " to executor " + execId)
         return Some((index, TaskLocality.RACK_LOCAL))
       }
     }
 
     // Look for no-pref tasks after rack-local tasks since they can run anywhere.
+    logDebug("Finding non-pref local tasks for executor " + execId + " on " + host + " for locality " + locality)
     for (index <- findTaskFromList(execId, pendingTasksWithNoPrefs)) {
+      logDebug("Allocated non-pref task " + index + " to executor " + execId)
       return Some((index, TaskLocality.PROCESS_LOCAL))
     }
 
     if (TaskLocality.isAllowed(locality, TaskLocality.ANY)) {
+      logDebug("Finding any pref tasks for executor " + execId + " on " + host + " for locality " + locality)
       for (index <- findTaskFromList(execId, allPendingTasks)) {
+        logDebug("Allocated any pref task " + index + " to executor " + execId)
         return Some((index, TaskLocality.ANY))
       }
     }
 
     // Finally, if all else has failed, find a speculative task
+    logDebug("Finding speculative tasks for executor " + execId + " on " + host + " for locality " + locality)
     findSpeculativeTask(execId, host, locality)
   }
 
@@ -438,13 +456,25 @@ private[spark] class TaskSetManager(
    * Get the level we can launch tasks according to delay scheduling, based on current wait time.
    */
   private def getAllowedLocalityLevel(curTime: Long): TaskLocality.TaskLocality = {
-    while (curTime - lastLaunchTime >= localityWaits(currentLocalityIndex) &&
-        currentLocalityIndex < myLocalityLevels.length - 1)
-    {
+    def isCurrentLocalityLevelEmpty = {
+      // This assumes that levels lower than current locality level are already empty.
+      myLocalityLevels(currentLocalityIndex) match {
+        case TaskLocality.PROCESS_LOCAL => pendingTasksForExecutor.forall(_._2.isEmpty)
+        case TaskLocality.NODE_LOCAL => pendingTasksForHost.forall(_._2.isEmpty)
+        case TaskLocality.RACK_LOCAL => pendingTasksForRack.forall(_._2.isEmpty)
+        case TaskLocality.ANY => pendingTasksWithNoPrefs.isEmpty
+      }
+    }
+    def isLocalityWaitTimedOut = curTime - lastLaunchTime >= localityWaits(currentLocalityIndex)
+    def canIncreaseLocalityIndex = currentLocalityIndex < myLocalityLevels.length - 1
+
+    while (canIncreaseLocalityIndex && (isLocalityWaitTimedOut || isCurrentLocalityLevelEmpty)) {
       // Jump to the next locality level, and remove our waiting time for the current one since
       // we don't want to count it again on the next one
       lastLaunchTime += localityWaits(currentLocalityIndex)
       currentLocalityIndex += 1
+      logDebug("Allowed locality level for task set " + taskSet.id +
+        " relaxed to " + myLocalityLevels(currentLocalityIndex))
     }
     myLocalityLevels(currentLocalityIndex)
   }
