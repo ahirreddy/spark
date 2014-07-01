@@ -318,4 +318,47 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
         case _ => executedPlan.toString
       }
   }
+
+  /**
+   * Use string interpolation to perform SQL queries that yield SchemaRDDs. Directly referenced
+   * SchemaRDD's (or RDDs that can be implicitly converted) will be automatically registered as a
+   * tables. This implicit class extends StringContext.
+   *
+   * {{{
+   *   val sqlContext = new SQLContext(...)
+   *   import sqlContext._
+   *
+   *   case class Person(name: String, age: Int)
+   *   val people: RDD[Person] = ...
+   *   val srdd = sql"SELECT * FROM $people"
+   * }}}
+   *
+   * @return SchemaRDD
+   */
+  implicit class SqlInterpolator(val strCtx: StringContext) {
+
+    def sql(args: Either[SchemaRDD, Function1[_, Int]]*): SchemaRDD = {
+      val processedArgs = args.map {
+        case Left(srdd) =>
+          val tableName = s"tmp_${srdd.id}"
+          srdd.registerAsTable(tableName)
+          tableName
+
+        case Right(func) =>
+          func match {
+            case function1: Function1[_, Int] =>
+              self.registerFunction("hello", function1)
+              "hello"
+            case _ =>
+              ""
+          }
+      }
+      val query = strCtx.standardInterpolator(identity, processedArgs)
+      self.sql(query)
+    }
+  }
+
+  implicit def RDDToEither[A <: Product: TypeTag](rdd: RDD[A]): Either[SchemaRDD, Function1[_, Int]] = Left(createSchemaRDD(rdd))
+  implicit def SchemaRDDToEither(srdd: SchemaRDD): Either[SchemaRDD, Function1[_, Int]] = Left(srdd)
+  implicit def Function1ToEither(f1: Function1[_, Int]): Either[SchemaRDD, Function1[_, Int]] = Right(f1)
 }
