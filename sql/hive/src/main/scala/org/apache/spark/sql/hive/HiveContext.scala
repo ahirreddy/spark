@@ -358,7 +358,7 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
     }
   }
 
-  implicit def RDDToEither[A <: Product: TypeTag](rdd: RDD[A]): Either[SchemaRDD, Function1[_, Int]] = Left(createSchemaRDD(rdd))
-  implicit def SchemaRDDToEither(srdd: SchemaRDD): Either[SchemaRDD, Function1[_, Int]] = Left(srdd)
-  implicit def Function1ToEither(f1: Function1[_, Int]): Either[SchemaRDD, Function1[_, Int]] = Right(f1)
+  implicit def RDDToEither[A <: Product: TypeTag](rdd: RDD[A]) = Left(createSchemaRDD(rdd))
+  implicit def SchemaRDDToEither(srdd: SchemaRDD) = Left(srdd)
+  implicit def Function1ToEither(f1: Function1[_, Int]) = Right(f1)
 }
