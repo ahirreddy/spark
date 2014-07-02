@@ -337,7 +337,7 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
    */
   implicit class SqlInterpolator(val strCtx: StringContext) {
 
-    def sql(args: Either[SchemaRDD, Function1[_, Int]]*): SchemaRDD = {
+    def sql[R: TypeTag](args: Either[SchemaRDD, Function1[_, R]]*): SchemaRDD = {
       val processedArgs = args.map {
         case Left(srdd) =>
           val tableName = s"tmp_${srdd.id}"
@@ -346,7 +346,7 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
 
         case Right(func) =>
           func match {
-            case function1: Function1[_, Int] =>
+            case function1: Function1[_, R] =>
               self.registerFunction("hello", function1)
               "hello"
             case _ =>
@@ -360,5 +360,5 @@ class HiveContext(sc: SparkContext) extends SQLContext(sc) with UdfRegistration{
 
   implicit def RDDToEither[A <: Product: TypeTag](rdd: RDD[A]) = Left(createSchemaRDD(rdd))
   implicit def SchemaRDDToEither(srdd: SchemaRDD) = Left(srdd)
-  implicit def Function1ToEither(f1: Function1[_, Int]) = Right(f1)
+  implicit def Function1ToEither[R](f1: Function1[_, R]) = Right(f1)
 }

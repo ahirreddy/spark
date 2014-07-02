@@ -23,6 +23,7 @@ import scala.collection.Map
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.{classTag, ClassTag}
+import scala.reflect.runtime.universe._
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLog
 import org.apache.hadoop.io.BytesWritable
@@ -81,6 +82,8 @@ abstract class RDD[T: ClassTag](
   /** Construct an RDD with just a one-to-one dependency on one parent */
   def this(@transient oneParent: RDD[_]) =
     this(oneParent.context , List(new OneToOneDependency(oneParent)))
+
+  implicit val tt: TypeTag[T] = typeTag
 
   private[spark] def conf = sc.conf
   // =======================================================================
