@@ -488,6 +488,9 @@ object SparkBuild extends Build {
       "com.twitter"                  % "parquet-hadoop"             % parquetVersion,
       "com.fasterxml.jackson.core"   % "jackson-databind"           % "2.3.0" // json4s-jackson 3.2.6 requires jackson-databind 2.3.0.
     ),
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full),
+    libraryDependencies <+= scalaVersion(v => "org.scala-lang"  % "scala-compiler" % v ),
+    libraryDependencies += "org.scalamacros" %% "quasiquotes" % "2.0.1",
     initialCommands in console :=
       """
         |import org.apache.spark.sql.catalyst.analysis._
